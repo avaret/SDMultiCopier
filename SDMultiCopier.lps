@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectSession>
+    <Version Value="11"/>
+    <BuildModes Active="Default"/>
+    <Units Count="21">
+      <Unit0>
+        <Filename Value="SDMultiCopier.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="4" Y="8"/>
+        <UsageCount Value="32"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="mainform.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="Form1"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="MainForm"/>
+        <TopLine Value="37"/>
+        <CursorPos X="118" Y="47"/>
+        <UsageCount Value="32"/>
+        <Loaded Value="True"/>
+        <LoadedDesigner Value="True"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="synchrosthreadsrw.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="SynchrosThreadsRW"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="158"/>
+        <CursorPos X="3" Y="163"/>
+        <UsageCount Value="32"/>
+        <Loaded Value="True"/>
+      </Unit2>
+      <Unit3>
+        <Filename Value="/usr/share/fpcsrc/3.0.4/rtl/inc/threadh.inc"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="13"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="/usr/lib/lazarus/2.0.6/lcl/forms.pp"/>
+        <UnitName Value="Forms"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1569"/>
+        <CursorPos X="15" Y="1506"/>
+        <UsageCount Value="13"/>
+      </Unit4>
+      <Unit5>
+        <Filename Value="/usr/share/fpcsrc/3.0.4/rtl/inc/objpash.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="173"/>
+        <CursorPos X="23" Y="194"/>
+        <UsageCount Value="10"/>
+      </Unit5>
+      <Unit6>
+        <Filename Value="/usr/lib/lazarus/2.0.6/lcl/controls.pp"/>
+        <UnitName Value="Controls"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1586"/>
+        <CursorPos X="16" Y="1607"/>
+        <UsageCount Value="11"/>
+      </Unit6>
+      <Unit7>
+        <Filename Value="/usr/lib/lazarus/2.0.6/lcl/lclclasses.pp"/>
+        <UnitName Value="LCLClasses"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="30"/>
+        <CursorPos X="16" Y="51"/>
+        <UsageCount Value="11"/>
+      </Unit7>
+      <Unit8>
+        <Filename Value="/usr/share/fpcsrc/3.0.4/rtl/objpas/classes/classesh.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1646"/>
+        <CursorPos X="17" Y="1667"/>
+        <UsageCount Value="11"/>
+      </Unit8>
+      <Unit9>
+        <Filename Value="/usr/share/fpcsrc/3.0.4/rtl/inc/systemh.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1193"/>
+        <CursorPos X="11" Y="1208"/>
+        <UsageCount Value="11"/>
+      </Unit9>
+      <Unit10>
+        <Filename Value="/usr/share/fpcsrc/3.0.4/rtl/objpas/sysutils/sysutilh.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="275"/>
+        <CursorPos X="23" Y="320"/>
+        <UsageCount Value="10"/>
+      </Unit10>
+      <Unit11>
+        <Filename Value="/usr/share/fpcsrc/3.0.4/rtl/unix/tthread.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="108"/>
+        <CursorPos X="28" Y="149"/>
+        <UsageCount Value="10"/>
+      </Unit11>
+      <Unit12>
+        <Filename Value="/usr/share/fpcsrc/3.0.4/rtl/inc/thread.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="339"/>
+        <CursorPos Y="363"/>
+        <UsageCount Value="10"/>
+      </Unit12>
+      <Unit13>
+        <Filename Value="/usr/share/fpcsrc/3.0.4/rtl/linux/sysosh.inc"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="27" Y="28"/>
+        <UsageCount Value="10"/>
+      </Unit13>
+      <Unit14>
+        <Filename Value="/usr/share/fpcsrc/3.0.4/rtl/linux/pmutext.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="16"/>
+        <UsageCount Value="10"/>
+      </Unit14>
+      <Unit15>
+        <Filename Value="/usr/share/fpcsrc/3.0.4/rtl/x86_64/x86_64.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="735"/>
+        <CursorPos X="8" Y="730"/>
+        <UsageCount Value="10"/>
+      </Unit15>
+      <Unit16>
+        <Filename Value="/usr/share/fpcsrc/3.0.4/rtl/linux/system.pp"/>
+        <UnitName Value="System"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="10"/>
+      </Unit16>
+      <Unit17>
+        <Filename Value="/usr/share/fpcsrc/3.0.4/packages/fcl-base/src/syncobjs.pp"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="37"/>
+        <UsageCount Value="10"/>
+      </Unit17>
+      <Unit18>
+        <Filename Value="/usr/lib/lazarus/2.0.6/lcl/include/progressbar.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="219"/>
+        <CursorPos Y="241"/>
+        <UsageCount Value="10"/>
+      </Unit18>
+      <Unit19>
+        <Filename Value="/usr/share/fpcsrc/3.0.4/rtl/inc/file.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="158"/>
+        <CursorPos X="3" Y="247"/>
+        <UsageCount Value="10"/>
+      </Unit19>
+      <Unit20>
+        <Filename Value="/usr/share/fpcsrc/3.0.4/rtl/unix/sysfile.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="51"/>
+        <CursorPos X="10" Y="72"/>
+        <UsageCount Value="10"/>
+      </Unit20>
+    </Units>
+    <JumpHistory Count="28" HistoryIndex="27">
+      <Position1>
+        <Filename Value="synchrosthreadsrw.pas"/>
+        <Caret Line="272" TopLine="242"/>
+      </Position1>
+      <Position2>
+        <Filename Value="synchrosthreadsrw.pas"/>
+        <Caret Line="25" Column="11" TopLine="4"/>
+      </Position2>
+      <Position3>
+        <Filename Value="synchrosthreadsrw.pas"/>
+        <Caret Line="26" Column="11" TopLine="4"/>
+      </Position3>
+      <Position4>
+        <Filename Value="synchrosthreadsrw.pas"/>
+        <Caret Line="38" Column="55" TopLine="4"/>
+      </Position4>
+      <Position5>
+        <Filename Value="synchrosthreadsrw.pas"/>
+        <Caret Line="136" Column="46" TopLine="101"/>
+      </Position5>
+      <Position6>
+        <Filename Value="synchrosthreadsrw.pas"/>
+        <Caret Line="38" Column="43" TopLine="17"/>
+      </Position6>
+      <Position7>
+        <Filename Value="synchrosthreadsrw.pas"/>
+        <Caret Line="136" Column="114" TopLine="101"/>
+      </Position7>
+      <Position8>
+        <Filename Value="synchrosthreadsrw.pas"/>
+        <Caret Line="139" Column="41" TopLine="104"/>
+      </Position8>
+      <Position9>
+        <Filename Value="synchrosthreadsrw.pas"/>
+        <Caret Line="143" Column="102" TopLine="108"/>
+      </Position9>
+      <Position10>
+        <Filename Value="synchrosthreadsrw.pas"/>
+        <Caret Line="166" Column="40" TopLine="131"/>
+      </Position10>
+      <Position11>
+        <Filename Value="synchrosthreadsrw.pas"/>
+        <Caret Line="170" Column="79" TopLine="135"/>
+      </Position11>
+      <Position12>
+        <Filename Value="synchrosthreadsrw.pas"/>
+        <Caret Line="180" Column="73" TopLine="145"/>
+      </Position12>
+      <Position13>
+        <Filename Value="synchrosthreadsrw.pas"/>
+        <Caret Line="189" TopLine="149"/>
+      </Position13>
+      <Position14>
+        <Filename Value="synchrosthreadsrw.pas"/>
+        <Caret Line="203" TopLine="168"/>
+      </Position14>
+      <Position15>
+        <Filename Value="synchrosthreadsrw.pas"/>
+        <Caret Line="25" TopLine="4"/>
+      </Position15>
+      <Position16>
+        <Filename Value="synchrosthreadsrw.pas"/>
+      </Position16>
+      <Position17>
+        <Filename Value="mainform.pas"/>
+        <Caret Line="71" Column="61" TopLine="37"/>
+      </Position17>
+      <Position18>
+        <Filename Value="synchrosthreadsrw.pas"/>
+      </Position18>
+      <Position19>
+        <Filename Value="synchrosthreadsrw.pas"/>
+        <Caret Line="28" Column="11"/>
+      </Position19>
+      <Position20>
+        <Filename Value="synchrosthreadsrw.pas"/>
+        <Caret Line="29" Column="11"/>
+      </Position20>
+      <Position21>
+        <Filename Value="synchrosthreadsrw.pas"/>
+        <Caret Line="41" Column="43"/>
+      </Position21>
+      <Position22>
+        <Filename Value="synchrosthreadsrw.pas"/>
+        <Caret Line="139" Column="46" TopLine="104"/>
+      </Position22>
+      <Position23>
+        <Filename Value="synchrosthreadsrw.pas"/>
+        <Caret Line="41" Column="37" TopLine="20"/>
+      </Position23>
+      <Position24>
+        <Filename Value="synchrosthreadsrw.pas"/>
+        <Caret Line="132" Column="41" TopLine="107"/>
+      </Position24>
+      <Position25>
+        <Filename Value="synchrosthreadsrw.pas"/>
+        <Caret Line="120" Column="28" TopLine="95"/>
+      </Position25>
+      <Position26>
+        <Filename Value="synchrosthreadsrw.pas"/>
+        <Caret Line="179" Column="12" TopLine="164"/>
+      </Position26>
+      <Position27>
+        <Filename Value="synchrosthreadsrw.pas"/>
+        <Caret Line="105" Column="15" TopLine="83"/>
+      </Position27>
+      <Position28>
+        <Filename Value="synchrosthreadsrw.pas"/>
+        <Caret Line="163" Column="3" TopLine="158"/>
+      </Position28>
+    </JumpHistory>
+    <RunParams>
+      <FormatVersion Value="2"/>
+      <Modes Count="0" ActiveMode=""/>
+    </RunParams>
+  </ProjectSession>
+  <Debugging>
+    <Watches Count="1">
+      <Item1>
+        <Expression Value="Form1.sync.syncdata"/>
+      </Item1>
+    </Watches>
+  </Debugging>
+</CONFIG>

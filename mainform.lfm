@@ -1,0 +1,68 @@
+object Form1: TForm1
+  Left = 436
+  Height = 695
+  Top = 165
+  Width = 988
+  Caption = 'Form1'
+  ClientHeight = 695
+  ClientWidth = 988
+  LCLVersion = '2.0.6.0'
+  object Button1: TButton
+    Left = 168
+    Height = 25
+    Top = 208
+    Width = 75
+    Caption = 'Button1'
+    OnClick = Button1Click
+    TabOrder = 0
+  end
+  object ProgressBar1: TProgressBar
+    Left = 401
+    Height = 20
+    Top = 200
+    Width = 100
+    TabOrder = 1
+  end
+  object ProgressBar2: TProgressBar
+    Left = 450
+    Height = 20
+    Top = 254
+    Width = 100
+    TabOrder = 2
+  end
+  object ProgressBar3: TProgressBar
+    Left = 452
+    Height = 20
+    Top = 289
+    Width = 100
+    TabOrder = 3
+  end
+  object AppLog: TRichMemo
+    Left = 0
+    Height = 143
+    Top = 552
+    Width = 988
+    Align = alBottom
+    HideSelection = False
+    Lines.Strings = (
+      'AppLog'
+    )
+    TabOrder = 4
+    ZoomFactor = 1
+  end
+  object testthread: TButton
+    Left = 194
+    Height = 25
+    Top = 282
+    Width = 75
+    Caption = 'testthread'
+    OnClick = testthreadClick
+    TabOrder = 5
+  end
+  object TimerProgression: TTimer
+    Enabled = False
+    OnTimer = TimerProgressionTimer
+    left = 8
+    top = 16
+  end
+end

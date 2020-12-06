@@ -23,6 +23,7 @@ const
 type TSemaphore = class
     sem : Pointer;
     sem_id : integer; // interne
+    sem_tokens : integer; // debug only
   public
     constructor Create(Tokens : integer = 1);
     destructor Destroy; override;
@@ -33,6 +34,7 @@ type TSemaphore = class
 type TSyncDataItem = record
     Buffer : array [1..BUFF_LENGTH] of byte; // Les données lues et à écrire
     BufferLen : integer; // Nombre de données lues/à écrire. Mettre 0 pour indiquer EOF (la fin de fichier). -1 pour indiquer 'pas initialisé'
+    BufferId : integer; // Pour le debug
     TokensToWrite : TSemaphore; // Le producteur indique ainsi que les consommateurs peuvent consommer
     TokensWritten : TSemaphore; // Les consommateurs indiquent ainsi qu'ils ont consommés les données
   end;
@@ -41,6 +43,7 @@ type TSyncDataItem = record
 type TProducerConsumersSynchronization = class
   private
     _NbConsumers : integer;
+    _BufferCount : integer;
   public
     syncData : array of TSyncDataItem; { Une FIFO circulaire  }
 
@@ -71,10 +74,7 @@ type
 type TAProducerOrAConsumer = class(TThread)
   protected
     _synchro : TProducerConsumersSynchronization;
-//    _callback: TPCCallBack;
-//    _callbackSender : TObject;
     _filename : string;
-//    procedure doCallbackNow(n : integer); // Le callback n: un paramètre éventuellement transmis...
 
   protected
     // Les procédures et fonctions à instancier
@@ -85,13 +85,6 @@ type TAProducerOrAConsumer = class(TThread)
     Progression : integer; // Variable initialisée à 0 et incrémentée à chaque bloc copié. Charge au MainThread de connaître le maximum pour faire avancer ses progressbar !
 
     constructor Create(filename : string; synchro : TProducerConsumersSynchronization{; callback: TPCCallBack; callbackSender : TObject});
-
-    // synchro = L'objet commun de synchronisation, un objet de type TProducerConsumersSynchronization
-    // callback = une fonction appelée à chaque tour de la boucle
-    // callbackSender = le paramètre constant ASender pour la fonction callback
-
-    // fonction effectant l'action globale de production, ou de consommation
-    //procedure Execute(); override;
   end;
 
 
@@ -127,10 +120,11 @@ end;
 
 procedure TProducer.Execute();
 var f : file;
-  no : integer;
+  no, nodebug : integer;
   eof : boolean; // End of file
 begin
   no := 0;
+  nodebug := 0;
 
   writeln('Test du producteur : ', GetThreadID);
   sleep(5000);
@@ -143,10 +137,14 @@ begin
   repeat
     _synchro.BeginProductionAnItem(no);
     BlockRead(f, _synchro.syncData[no].Buffer, BUFF_BLOCKCOUNT, _synchro.syncData[no].BufferLen);
-    _synchro.EndProductionAnItem(no);
-    //doCallbackNow(no);
     eof := (_synchro.syncData[no].BufferLen = 0);
+
+    _synchro.syncData[no].BufferId:= nodebug;
+    writeln(' produced buffer #', nodebug, ' [', no, '] of size ', _synchro.syncData[no].BufferLen);
+    _synchro.EndProductionAnItem(no);
+
     Inc(Progression);
+    Inc(nodebug);
   until eof;
 
   // Ici, fin du fichier atteinte => le dernier bloc transmis aux consommateurs a l'indication BufferLen = 0 et ils savent donc qu'il faut arrêter.
@@ -175,6 +173,8 @@ begin
     eof := _synchro.syncData[no].BufferLen = 0; // A-t-on atteint la fin ?
     ResultBlockWrite := 0;
 
+    writeln(' consumed buffer #', _synchro.syncData[no].BufferId, ' [', no, '] of size ', _synchro.syncData[no].BufferLen);
+
     if not eof then
       BlockWrite(f, _synchro.syncData[no].Buffer, _synchro.syncData[no].BufferLen, ResultBlockWrite);
     _synchro.EndConsumptionAnItem(no);
@@ -189,18 +189,21 @@ end;
 constructor TProducerConsumersSynchronization.Create(NbConsumers, BufferCount : integer);
 var i : integer;
 begin
+  writeln('TProducerConsumersSynchronization.Create(NbConsumers = ', NbConsumers, ', BufferCount = ', BufferCount);
   // Initialiser syncData
   SetLength(syncData, BufferCount);
   for i := 0 to BufferCount - 1 do
     With syncData[i] do
     Begin
       BufferLen := -1;
+      BufferId  := -1;
       TokensToWrite := TSemaphore.Create(0);
       TokensWritten := TSemaphore.Create(NbConsumers);
     End;
 
   // Et garder en mémoire les infos utiles
   _NbConsumers := NbConsumers;
+  _BufferCount := BufferCount;
 end;
 
 destructor TProducerConsumersSynchronization.Destroy();
@@ -219,32 +222,40 @@ end;
 
 procedure TProducerConsumersSynchronization.BeginProductionAnItem(var no : integer);
 begin
+  writeln('TProducerConsumersSynchronization.BeginProductionAnItem(', no, ')');
+
   // P(Jetons écrits, N)
   syncData[no].TokensWritten.Wait(_NbConsumers);
 end;
 
 procedure TProducerConsumersSynchronization.EndProductionAnItem(var no : integer);
 begin
+  writeln('TProducerConsumersSynchronization.EndProductionAnItem(', no, ')');
+
   // V(Jetons à écrite, N)
   syncData[no].TokensToWrite.Post(_NbConsumers);
 
   // Et préparer pour le bloc suivant
-  no := (no + 1) mod _NbConsumers;
+  no := (no + 1) mod _BufferCount;
 end;
 
 procedure TProducerConsumersSynchronization.BeginConsumptionAnItem(var no : integer);
 begin
+  writeln('TProducerConsumersSynchronization.BeginConsumptionAnItem(', no, ')');
+
   // P(Jetons à écrire)
   syncData[no].TokensToWrite.Wait;
 end;
 
 procedure TProducerConsumersSynchronization.EndConsumptionAnItem(var no : integer);
 begin
+  writeln('TProducerConsumersSynchronization.EndConsumptionAnItem(', no, ')');
+
   // V(Jetons écrits)
   syncData[no].TokensWritten.Post;
 
   // Et préparer pour le bloc suivant
-  no := (no + 1) mod _NbConsumers;
+  no := (no + 1) mod _BufferCount;
 end;
 
 
@@ -257,6 +268,8 @@ begin
 
   sem_id := (QWord(sem) >> 4) mod 1024;
   writeln(' Thread ', GetCurrentThreadId, ' created sem ', QWord(sem), ' = ', sem_id, ' with ', Tokens, ' tokens');
+
+  sem_tokens := 0;
   if(Tokens > 0) then
     Post(Tokens);
 end;
@@ -270,15 +283,21 @@ end;
 procedure TSemaphore.Post(Tokens : integer = 1);
 var i  : integer;
 begin
+  //writeln(' Thread ', GetCurrentThreadId, ' sem_id ', sem_id, ' posting ', Tokens, 'tokens : old val = ', sem_tokens, ' tokens');
   for i := 1 to Tokens do
     SemaphorePost(sem);
+  sem_tokens := sem_tokens + Tokens;
+  //writeln(' Thread ', GetCurrentThreadId, ' sem_id ', sem_id, ' posted tokens : new val = ', sem_tokens, ' tokens');
 end;
 
 procedure TSemaphore.Wait(Tokens : integer = 1);
 var i  : integer;
 begin
+  //writeln(' Thread ', GetCurrentThreadId, ' sem_id ', sem_id, ' waiting ', Tokens, 'tokens : old val = ', sem_tokens, ' tokens');
   for i := 1 to Tokens do
     SemaphoreWait(sem);
+  sem_tokens := sem_tokens - Tokens;
+  //writeln(' Thread ', GetCurrentThreadId, ' sem_id ', sem_id, ' waited tokens : new val = ', sem_tokens, ' tokens');
 end;
 
 

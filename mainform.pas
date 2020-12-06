@@ -59,9 +59,12 @@ end;
 
 procedure TForm1.TimerProgressionTimer(Sender: TObject);
 begin
-  ProgressBar1.Step:= pr.Progression;
-  ProgressBar2.Step:= c1.Progression;
-  ProgressBar3.Step:= c2.Progression;
+  if(pr <> nil) then
+    ProgressBar1.Step:= pr.Progression;
+  if(c1 <> nil) then
+    ProgressBar2.Step:= c1.Progression;
+  if(c2 <> nil) then
+    ProgressBar3.Step:= c2.Progression;
 
   // TODO if c*.Progression >= MAX, then Enabled := false
 end;
@@ -69,9 +72,9 @@ end;
 procedure TForm1.Button1Click(Sender: TObject);
 begin
   sync := TProducerConsumersSynchronization.Create(2, 8);
-  pr := TProducer.Create('/tmp/pr', sync);
+  pr := TProducer.Create('/tmp/pr', sync); // @pre:  cp /etc/services /tmp/pr
   c1 := TConsumer.Create('/tmp/c1', sync);
-  c2 := TConsumer.Create('/tmp/c2', sync);
+  //c2 := TConsumer.Create('/tmp/c2', sync);
   TimerProgression.Enabled:= True;
 end;
 

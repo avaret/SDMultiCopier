@@ -2,7 +2,7 @@ unit SynchrosThreadsRW;
 
 { TODO:
  - Nettoyer un peu le code,
- - Mon algo prod/conso ne fonctionne pas => débugger
+ - Mon algo prod/conso ne fonctionne pas => remplace par pub/subscr
  - des blocs de 1 octet ? de 4 Ko ? ...
  }
 
@@ -14,7 +14,7 @@ uses
   Classes, SysUtils, SyncObjs;
 
 const
-  BUFF_BLOCKCOUNT = 20;
+  BUFF_BLOCKCOUNT = 2;
   BUFF_BLOCKSIZE  = 1;
   BUFF_LENGTH = BUFF_BLOCKCOUNT * BUFF_BLOCKSIZE;
 
@@ -32,48 +32,54 @@ type TSemaphore = class
   end;
 
 type TSyncDataItem = record
+    TokensToWrite : TSemaphore; // Le Publisheur indique ainsi que les subscribers peuvent consommer (et combien ils peuvent = nb de jetons)
+    TokensWritten : TSemaphore; // Les subscribers indiquent ainsi qu'ils ont consommé les données
+  end;
+
+type TDataItem = record
     Buffer : array [1..BUFF_LENGTH] of byte; // Les données lues et à écrire
     BufferLen : integer; // Nombre de données lues/à écrire. Mettre 0 pour indiquer EOF (la fin de fichier). -1 pour indiquer 'pas initialisé'
     BufferId : integer; // Pour le debug
-    TokensToWrite : TSemaphore; // Le producteur indique ainsi que les consommateurs peuvent consommer
-    TokensWritten : TSemaphore; // Les consommateurs indiquent ainsi qu'ils ont consommés les données
-  end;
+    end;
 
-{ Srtucture globale de synchro du producteur et des consommateurs. Doit être créé avant les producteurs/consommateurs. }
-type TProducerConsumersSynchronization = class
+{ Srtucture globale de synchro du Publisheur et des consommateurs. Doit être créé avant les Publishteurs/consommateurs. 1 publieur, N souscripteurs }
+type TPublisherSubscribersSynchronization = class
   private
-    _NbConsumers : integer;
+    //_NbSubscribers : integer; // == Length(syncData)
     _BufferCount : integer;
-  public
-    syncData : array of TSyncDataItem; { Une FIFO circulaire  }
+    protectRegistration : TCriticalSection;
 
-    constructor Create(NbConsumers, BufferCount : integer);
+  public
+    syncData : array of TSyncDataItem; { Un tableau avec un couple de sémaphores pour chaque subscriber }
+    dataItems : array of TDataItem;   { Une FIFO circulaire  }
+
+    constructor Create(BufferCount : integer);
     destructor Destroy; override;
 
-    { Les fonctions :
-       - *Production->le producteur, *Consumption->chaque consommateur.
-       - no: une variable LOCALE au thread, doit être initialisée par le thread lui-même à 0.
+    function RegisterSubscriber : Integer; { Chaque subscriber doit s'enregistrer en appelant cette fonction qui retourne un id unique }
+
+    { Les fonctions suivantes servent à la synchronisation (et à éviter les effets de bord:
+       - *Publishtion->le Publishteur, *Subscribption->chaque consommateur.
+       - no_item: une variable LOCALE au thread, doit être initialisée par le thread lui-même à 0. Pour index dans dataItems.
+       - id_subscr: l'identifiant unique retourné par RegisterSubscriber, sert comme index dans syncData.
+
        - Begin* -> appeler avant de chaque opération de lecture/écriture de bloc
-        ici, chaque consommateur/producteur peut utiliser en toute quiétude syncData[no]
+        ici, chaque consommateur/Publishteur peut utiliser en toute quiétude dataItems[no_item]
        - End* -> appeler à la fin de chaque opération de lecture/écriture de bloc
     }
 
-    procedure BeginProductionAnItem(var no : integer);
-    procedure EndProductionAnItem(var no : integer);
+    procedure BeginPublishtionAnItem(var no_item : integer);
+    procedure EndPublishtionAnItem(var no_item : integer);
 
-    procedure BeginConsumptionAnItem(var no : integer);
-    procedure EndConsumptionAnItem(var no : integer);
+    procedure BeginSubscribptionAnItem(id_subscr : Integer; var no_item : integer);
+    procedure EndSubscribptionAnItem(id_subscr : Integer; var no_item : integer);
   end;
 
-  { La fonction de notification pour faire bouger les progressbar
-type
-  TPCCallBack = procedure (Sender: TObject; AData : Pointer) of object;  }
 
-
-  { Les producteurs et consommateurs partagent un certain nombre de points communs }
-type TAProducerOrAConsumer = class(TThread)
+  { Les Publishteurs et subscribers partagent un certain nombre de points communs }
+type TAPublisherOrASubscriber = class(TThread)
   protected
-    _synchro : TProducerConsumersSynchronization;
+    _synchro : TPublisherSubscribersSynchronization;
     _filename : string;
 
   protected
@@ -84,41 +90,44 @@ type TAProducerOrAConsumer = class(TThread)
   public
     Progression : integer; // Variable initialisée à 0 et incrémentée à chaque bloc copié. Charge au MainThread de connaître le maximum pour faire avancer ses progressbar !
 
-    constructor Create(filename : string; synchro : TProducerConsumersSynchronization{; callback: TPCCallBack; callbackSender : TObject});
+    constructor Create(filename : string; synchro : TPublisherSubscribersSynchronization; createSuspendend : boolean = True {publisher bloqué});
   end;
 
 
-  { Producteur }
-type TProducer = class(TAProducerOrAConsumer)
+  { Publishteur }
+type TPublisher = class(TAPublisherOrASubscriber)
     procedure Execute(); override;
   end;
 
   { Consommateur }
-type TConsumer  = class(TAProducerOrAConsumer)
+type TSubscriber  = class(TAPublisherOrASubscriber)
+  protected
+    subscriber_uid:Integer;
+  public
+    constructor Create(filename : string; synchro : TPublisherSubscribersSynchronization; createSuspendend : boolean = False {souscripteur autostart});
     procedure Execute(); override;
   end;
 
 implementation
 
-constructor TAProducerOrAConsumer.Create(filename : string; synchro : TProducerConsumersSynchronization{; callback: TPCCallBack; callbackSender : TObject});
+constructor TAPublisherOrASubscriber.Create(filename : string; synchro : TPublisherSubscribersSynchronization; createSuspendend : boolean = True);
 begin
   _filename := filename;
   _synchro := synchro;
-//  _callback := callback;
-//  _callbackSender := callbackSender;
   Progression := 0;
 
   FreeOnTerminate := true;
-  inherited Create(False); // Create Not Suspended
+  inherited Create(createSuspendend);
 end;
 
-{procedure TAProducerOrAConsumer.doCallbackNow(n : integer);
+constructor TSubscriber.Create(filename : string; synchro : TPublisherSubscribersSynchronization; createSuspendend : boolean = False);
 begin
-  _callback(_callbackSender, Pointer(n));
-end;
-}
+  inherited Create(filename, synchro, createSuspendend);
 
-procedure TProducer.Execute();
+  subscriber_uid := synchro.RegisterSubscriber; // S'enregistrer pour la synchro
+end;
+
+procedure TPublisher.Execute();
 var f : file;
   no, nodebug : integer;
   eof : boolean; // End of file
@@ -126,8 +135,8 @@ begin
   no := 0;
   nodebug := 0;
 
-  writeln('Test du producteur : ', GetThreadID);
-  sleep(5000);
+  writeln('Test du Publieur : ', GetThreadID);
+  ///sleep(5000);
 
   // Ouverture du fichier en lecture
   AssignFile(f, _filename);
@@ -135,13 +144,14 @@ begin
 
   // et on lit bloc par bloc
   repeat
-    _synchro.BeginProductionAnItem(no);
-    BlockRead(f, _synchro.syncData[no].Buffer, BUFF_BLOCKCOUNT, _synchro.syncData[no].BufferLen);
-    eof := (_synchro.syncData[no].BufferLen = 0);
+    _synchro.BeginPublishtionAnItem(no);
+    BlockRead(f, _synchro.dataItems[no].Buffer, BUFF_BLOCKCOUNT, _synchro.dataItems[no].BufferLen);
+    eof := (_synchro.dataItems[no].BufferLen = 0);
+    ///sleep(random(2000));
 
-    _synchro.syncData[no].BufferId:= nodebug;
-    writeln(' produced buffer #', nodebug, ' [', no, '] of size ', _synchro.syncData[no].BufferLen);
-    _synchro.EndProductionAnItem(no);
+    _synchro.dataItems[no].BufferId:= nodebug;
+    writeln(' Published buffer #', nodebug, ' [', no, '] of size ', _synchro.dataItems[no].BufferLen);
+    _synchro.EndPublishtionAnItem(no);
 
     Inc(Progression);
     Inc(nodebug);
@@ -153,15 +163,15 @@ begin
   CloseFile(f);
 end;
 
-procedure TConsumer.Execute();
+procedure TSubscriber.Execute();
 var f : file;
   no, ResultBlockWrite : integer;
   eof : boolean; // End of file
 begin
   no := 0;
 
-  writeln('Test d''un consommateur : ', GetThreadID);
-  sleep(8000);
+  writeln('Test d''un souscripteur : ', GetThreadID);
+  //sleep(8000);
 
   // Ouverture du fichier en écriture
   AssignFile(f, _filename);
@@ -169,15 +179,16 @@ begin
 
   // et on écrit bloc par bloc
   repeat
-    _synchro.BeginConsumptionAnItem(no);
-    eof := _synchro.syncData[no].BufferLen = 0; // A-t-on atteint la fin ?
+    _synchro.BeginSubscribptionAnItem(subscriber_uid, no);
+    eof := _synchro.dataItems[no].BufferLen = 0; // A-t-on atteint la fin ?
     ResultBlockWrite := 0;
 
-    writeln(' consumed buffer #', _synchro.syncData[no].BufferId, ' [', no, '] of size ', _synchro.syncData[no].BufferLen);
+    ///sleep(random(2000));
+    writeln(' Subscribed buffer #', _synchro.dataItems[no].BufferId, ' [', no, '] of size ', _synchro.dataItems[no].BufferLen);
 
     if not eof then
-      BlockWrite(f, _synchro.syncData[no].Buffer, _synchro.syncData[no].BufferLen, ResultBlockWrite);
-    _synchro.EndConsumptionAnItem(no);
+      BlockWrite(f, _synchro.dataItems[no].Buffer, _synchro.dataItems[no].BufferLen, ResultBlockWrite);
+    _synchro.EndSubscribptionAnItem(subscriber_uid, no);
     //doCallbackNow(no);
     Inc(Progression);
   until eof;
@@ -186,29 +197,45 @@ begin
   CloseFile(f);
 end;
 
-constructor TProducerConsumersSynchronization.Create(NbConsumers, BufferCount : integer);
+constructor TPublisherSubscribersSynchronization.Create(BufferCount : integer);
 var i : integer;
 begin
-  writeln('TProducerConsumersSynchronization.Create(NbConsumers = ', NbConsumers, ', BufferCount = ', BufferCount);
+  writeln('TPublisherSubscribersSynchronization.Create(BufferCount = ', BufferCount);
+
   // Initialiser syncData
-  SetLength(syncData, BufferCount);
+  SetLength(dataItems, BufferCount);
   for i := 0 to BufferCount - 1 do
-    With syncData[i] do
+    With dataItems[i] do
     Begin
       BufferLen := -1;
       BufferId  := -1;
-      TokensToWrite := TSemaphore.Create(0);
-      TokensWritten := TSemaphore.Create(NbConsumers);
     End;
 
+  protectRegistration := TCriticalSection.Create;
+  syncData := nil;
+
   // Et garder en mémoire les infos utiles
-  _NbConsumers := NbConsumers;
   _BufferCount := BufferCount;
 end;
 
-destructor TProducerConsumersSynchronization.Destroy();
+function TPublisherSubscribersSynchronization.RegisterSubscriber : Integer; { Chaque subscriber doit s'enregistrer en appelant cette fonction qui retourne un id unique }
+Begin
+  protectRegistration.Acquire;
+  Result := Length(syncData);
+  SetLength(syncData, Result+1);
+  With syncData[Result] do
+  begin
+    TokensToWrite := TSemaphore.Create(0);
+    TokensWritten := TSemaphore.Create(1);
+  end;
+  protectRegistration.Release;
+end;
+
+
+destructor TPublisherSubscribersSynchronization.Destroy();
 var i : integer;
 begin
+  // Libération des ressources allouées
   for i := High(syncData) downto 0 do
     With syncData[i] do
     Begin
@@ -217,45 +244,50 @@ begin
     end;
   SetLength(syncData, 0);
 
+  SetLength(dataItems, 0);
   inherited ;
 end;
 
-procedure TProducerConsumersSynchronization.BeginProductionAnItem(var no : integer);
+procedure TPublisherSubscribersSynchronization.BeginPublishtionAnItem(var no_item : integer);
+var id_subscr : integer;
 begin
-  writeln('TProducerConsumersSynchronization.BeginProductionAnItem(', no, ')');
+  writeln('TPublisherSubscribersSynchronization.BeginPublishtionAnItem(', no_item, ')');
 
-  // P(Jetons écrits, N)
-  syncData[no].TokensWritten.Wait(_NbConsumers);
+  // Pour chaque souscripteur, P(1)
+  for id_subscr := 0 to High(syncData) do
+    syncData[id_subscr].TokensWritten.Wait;
 end;
 
-procedure TProducerConsumersSynchronization.EndProductionAnItem(var no : integer);
+procedure TPublisherSubscribersSynchronization.EndPublishtionAnItem(var no_item : integer);
+var id_subscr : integer;
 begin
-  writeln('TProducerConsumersSynchronization.EndProductionAnItem(', no, ')');
+  writeln('TPublisherSubscribersSynchronization.EndPublishtionAnItem(', no_item, ')');
 
-  // V(Jetons à écrite, N)
-  syncData[no].TokensToWrite.Post(_NbConsumers);
+  //  Pour chaque souscripteur, V(1)
+  for id_subscr := 0 to High(syncData) do
+    syncData[id_subscr].TokensToWrite.Post;
 
   // Et préparer pour le bloc suivant
-  no := (no + 1) mod _BufferCount;
+  no_item := (no_item + 1) mod _BufferCount;
 end;
 
-procedure TProducerConsumersSynchronization.BeginConsumptionAnItem(var no : integer);
+procedure TPublisherSubscribersSynchronization.BeginSubscribptionAnItem(id_subscr : Integer; var no_item : integer);
 begin
-  writeln('TProducerConsumersSynchronization.BeginConsumptionAnItem(', no, ')');
+  writeln('TPublisherSubscribersSynchronization.BeginSubscribptionAnItem(', no_item, ')');
 
-  // P(Jetons à écrire)
-  syncData[no].TokensToWrite.Wait;
+  // P(1)
+  syncData[id_subscr].TokensToWrite.Wait;
 end;
 
-procedure TProducerConsumersSynchronization.EndConsumptionAnItem(var no : integer);
+procedure TPublisherSubscribersSynchronization.EndSubscribptionAnItem(id_subscr : Integer; var no_item : integer);
 begin
-  writeln('TProducerConsumersSynchronization.EndConsumptionAnItem(', no, ')');
+  writeln('TPublisherSubscribersSynchronization.EndSubscribptionAnItem(', no_item, ')');
 
-  // V(Jetons écrits)
-  syncData[no].TokensWritten.Post;
+  // V(1)
+  syncData[id_subscr].TokensWritten.Post;
 
   // Et préparer pour le bloc suivant
-  no := (no + 1) mod _BufferCount;
+  no_item := (no_item + 1) mod _BufferCount;
 end;
 
 

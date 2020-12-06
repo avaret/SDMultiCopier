@@ -30,9 +30,9 @@ type
   private
 
   public
-    sync : TProducerConsumersSynchronization;
-    pr : TProducer;
-    c1, c2 : TConsumer;
+    sync : TPublisherSubscribersSynchronization;
+    pr : TPublisher;
+    c1, c2 : TSubscriber;
   end;
 
 var
@@ -71,11 +71,13 @@ end;
 
 procedure TForm1.Button1Click(Sender: TObject);
 begin
-  sync := TProducerConsumersSynchronization.Create(2, 8);
-  pr := TProducer.Create('/tmp/pr', sync); // @pre:  cp /etc/services /tmp/pr
-  c1 := TConsumer.Create('/tmp/c1', sync);
-  //c2 := TConsumer.Create('/tmp/c2', sync);
+  sync := TPublisherSubscribersSynchronization.Create(8);
+  pr := TPublisher.Create('/tmp/pr', sync); // @pre:  cp /etc/services /tmp/pr
+  c1 := TSubscriber.Create('/tmp/c1', sync);
+  c2 := TSubscriber.Create('/tmp/c2', sync);
+
   TimerProgression.Enabled:= True;
+  pr.Resume; // Maintenant que tous les souscripteurs sont arrivés, on le lance
 end;
 
 end.

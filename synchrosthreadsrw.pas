@@ -19,7 +19,7 @@ const
   BUFF_LENGTH = BUFF_BLOCKCOUNT * BUFF_BLOCKSIZE;
 
 
-{ Utilisé pour synchroniser les threads }
+  { Classe utilisée pour synchroniser les threads }
 type TSemaphore = class
     sem : Pointer;
     sem_id : integer; // interne
@@ -31,33 +31,43 @@ type TSemaphore = class
     procedure Wait(Tokens : integer = 1);
   end;
 
+  { Structure de donnée servant à protéger les échanges entre tâches }
 type TSyncDataItem = record
-    TokensToWrite : TSemaphore; // Le Publisheur indique ainsi que les subscribers peuvent consommer (et combien ils peuvent = nb de jetons)
-    TokensWritten : TSemaphore; // Les subscribers indiquent ainsi qu'ils ont consommé les données
+    TokensToWrite : TSemaphore; // Le Publieur indique ainsi que les souscripteurs peuvent consommer (et combien ils peuvent = nb de jetons)
+    TokensWritten : TSemaphore; // Les souscripteurs indiquent ainsi qu'ils ont consommé des données
   end;
 
+  { Structure de donnée contenant les données réellement échangées }
 type TDataItem = record
     Buffer : array [1..BUFF_LENGTH] of byte; // Les données lues et à écrire
     BufferLen : integer; // Nombre de données lues/à écrire. Mettre 0 pour indiquer EOF (la fin de fichier). -1 pour indiquer 'pas initialisé'
-    BufferId : integer; // Pour le debug
+    BufferId : integer; // Un identifiant "numéro de bloc" pour le debug
     end;
 
-{ Srtucture globale de synchro du Publisheur et des consommateurs. Doit être créé avant les Publishteurs/consommateurs. 1 publieur, N souscripteurs }
+{ Classe globale de synchro du Publieur et des souscripteurs. Doit être créé avant les Publieur/souscripteurs.
+  - 1 publieur, N souscripteurs
+  - Chaque souscripteur doit s'enregistrer via RegisterSubscriber qui lui retourne son id }
 type TPublisherSubscribersSynchronization = class
   private
-    //_NbSubscribers : integer; // == Length(syncData)
+    //_NbSubscribers == Length(syncData)
     _BufferCount : integer;
     protectRegistration : TCriticalSection;
 
   public
-    syncData : array of TSyncDataItem; { Un tableau avec un couple de sémaphores pour chaque subscriber }
-    dataItems : array of TDataItem;   { Une FIFO circulaire  }
+     { Une FIFO circulaire avec les blocs de données à échanger entre tâches.
+     Index du tableau = numéro d'un bloc de donnée à échanger € 0..BUFFER_COUNT }
+    dataItems : array of TDataItem;
+
+    { Un tableau avec, **pour chaque souscripteur,** un couple de sémaphores servant à la synchro "CE souscripteur"/"le publieur".
+    Index du tableau = id du souscripteur € 0..Nb_Subscriptors }
+    syncData : array of TSyncDataItem;
 
     constructor Create(BufferCount : integer);
     destructor Destroy; override;
 
     function RegisterSubscriber : Integer; { Chaque subscriber doit s'enregistrer en appelant cette fonction qui retourne un id unique }
 
+  public
     { Les fonctions suivantes servent à la synchronisation (et à éviter les effets de bord:
        - *Publishtion->le Publishteur, *Subscribption->chaque consommateur.
        - no_item: une variable LOCALE au thread, doit être initialisée par le thread lui-même à 0. Pour index dans dataItems.
@@ -68,38 +78,41 @@ type TPublisherSubscribersSynchronization = class
        - End* -> appeler à la fin de chaque opération de lecture/écriture de bloc
     }
 
-    procedure BeginPublishtionAnItem(var no_item : integer);
-    procedure EndPublishtionAnItem(var no_item : integer);
+    procedure BeginPublishPushAnItem(var no_item : integer);
+    procedure EndPublishPushAnItem(var no_item : integer);
 
-    procedure BeginSubscribptionAnItem(id_subscr : Integer; var no_item : integer);
-    procedure EndSubscribptionAnItem(id_subscr : Integer; var no_item : integer);
+    procedure BeginSubscribTakeAnItem(id_subscr : Integer; var no_item : integer);
+    procedure EndSubscribTakeAnItem(id_subscr : Integer; var no_item : integer);
   end;
 
 
-  { Les Publishteurs et subscribers partagent un certain nombre de points communs }
+  { Les Publieurs et souscripteurs partagent un certain nombre de points communs }
 type TAPublisherOrASubscriber = class(TThread)
   protected
     _synchro : TPublisherSubscribersSynchronization;
     _filename : string;
 
   protected
-    // Les procédures et fonctions à instancier
-    //OpenfileFunction : procedure(var f: File);
-    //ReadorwriteFunction : procedure(f: File; var Buf; buflen : longint; var result : integer);
+    // Les procédures et fonctions à instancier:
+    //OpenfileFunction : procedure(var f: File); virtual;
+    //ReadorwriteFunction : procedure(f: File; var Buf; buflen : longint; var result : integer); virtual;
 
   public
-    Progression : integer; // Variable initialisée à 0 et incrémentée à chaque bloc copié. Charge au MainThread de connaître le maximum pour faire avancer ses progressbar !
 
-    constructor Create(filename : string; synchro : TPublisherSubscribersSynchronization; createSuspendend : boolean = True {publisher bloqué});
+    { Variable initialisée à 0 et incrémentée à chaque bloc copié.
+    C'est la responsabilité du MainThread de connaître le maximum pour faire avancer ses progressbar ! }
+    Progression : integer;
+
+    constructor Create(filename : string; synchro : TPublisherSubscribersSynchronization; createSuspendend : boolean = True {publieur initialement en attente});
   end;
 
 
-  { Publishteur }
+  { Publieur }
 type TPublisher = class(TAPublisherOrASubscriber)
     procedure Execute(); override;
   end;
 
-  { Consommateur }
+  { Souscripteur }
 type TSubscriber  = class(TAPublisherOrASubscriber)
   protected
     subscriber_uid:Integer;
@@ -135,29 +148,27 @@ begin
   no := 0;
   nodebug := 0;
 
-  writeln('Test du Publieur : ', GetThreadID);
-  ///sleep(5000);
-
   // Ouverture du fichier en lecture
   AssignFile(f, _filename);
   Reset(f, BUFF_BLOCKSIZE);
 
   // et on lit bloc par bloc
   repeat
-    _synchro.BeginPublishtionAnItem(no);
+    _synchro.BeginPublishPushAnItem(no);
+
     BlockRead(f, _synchro.dataItems[no].Buffer, BUFF_BLOCKCOUNT, _synchro.dataItems[no].BufferLen);
     eof := (_synchro.dataItems[no].BufferLen = 0);
-    ///sleep(random(2000));
-
     _synchro.dataItems[no].BufferId:= nodebug;
-    writeln(' Published buffer #', nodebug, ' [', no, '] of size ', _synchro.dataItems[no].BufferLen);
-    _synchro.EndPublishtionAnItem(no);
+
+    _synchro.EndPublishPushAnItem(no);
 
     Inc(Progression);
     Inc(nodebug);
   until eof;
 
-  // Ici, fin du fichier atteinte => le dernier bloc transmis aux consommateurs a l'indication BufferLen = 0 et ils savent donc qu'il faut arrêter.
+  // Ici, fin du fichier atteinte =>
+  //  le dernier bloc transmis aux souscripteurs a l'indication BufferLen = 0
+  //  => les souscripteurs savent donc qu'il faut arrêter.
 
   // On ferme le fichier et on quitte.
   CloseFile(f);
@@ -170,26 +181,21 @@ var f : file;
 begin
   no := 0;
 
-  writeln('Test d''un souscripteur : ', GetThreadID);
-  //sleep(8000);
-
   // Ouverture du fichier en écriture
   AssignFile(f, _filename);
   Rewrite(f, BUFF_BLOCKSIZE);
 
   // et on écrit bloc par bloc
   repeat
-    _synchro.BeginSubscribptionAnItem(subscriber_uid, no);
-    eof := _synchro.dataItems[no].BufferLen = 0; // A-t-on atteint la fin ?
+    _synchro.BeginSubscribTakeAnItem(subscriber_uid, no);
+
     ResultBlockWrite := 0;
-
-    ///sleep(random(2000));
-    writeln(' Subscribed buffer #', _synchro.dataItems[no].BufferId, ' [', no, '] of size ', _synchro.dataItems[no].BufferLen);
-
+    eof := _synchro.dataItems[no].BufferLen = 0; // A-t-on atteint la fin ?
     if not eof then
       BlockWrite(f, _synchro.dataItems[no].Buffer, _synchro.dataItems[no].BufferLen, ResultBlockWrite);
-    _synchro.EndSubscribptionAnItem(subscriber_uid, no);
-    //doCallbackNow(no);
+
+    _synchro.EndSubscribTakeAnItem(subscriber_uid, no);
+
     Inc(Progression);
   until eof;
 
@@ -200,8 +206,6 @@ end;
 constructor TPublisherSubscribersSynchronization.Create(BufferCount : integer);
 var i : integer;
 begin
-  writeln('TPublisherSubscribersSynchronization.Create(BufferCount = ', BufferCount);
-
   // Initialiser syncData
   SetLength(dataItems, BufferCount);
   for i := 0 to BufferCount - 1 do
@@ -211,6 +215,7 @@ begin
       BufferId  := -1;
     End;
 
+  // Initialiser le reste
   protectRegistration := TCriticalSection.Create;
   syncData := nil;
 
@@ -218,7 +223,8 @@ begin
   _BufferCount := BufferCount;
 end;
 
-function TPublisherSubscribersSynchronization.RegisterSubscriber : Integer; { Chaque subscriber doit s'enregistrer en appelant cette fonction qui retourne un id unique }
+{ Chaque souscripteur doit s'enregistrer en appelant cette fonction qui retourne un id unique }
+function TPublisherSubscribersSynchronization.RegisterSubscriber : Integer;
 Begin
   protectRegistration.Acquire;
   Result := Length(syncData);
@@ -248,20 +254,20 @@ begin
   inherited ;
 end;
 
-procedure TPublisherSubscribersSynchronization.BeginPublishtionAnItem(var no_item : integer);
+procedure TPublisherSubscribersSynchronization.BeginPublishPushAnItem(var no_item : integer);
 var id_subscr : integer;
 begin
-  writeln('TPublisherSubscribersSynchronization.BeginPublishtionAnItem(', no_item, ')');
+  //writeln('TPublisherSubscribersSynchronization.BeginPublishPushAnItem(', no_item, ')');
 
   // Pour chaque souscripteur, P(1)
   for id_subscr := 0 to High(syncData) do
     syncData[id_subscr].TokensWritten.Wait;
 end;
 
-procedure TPublisherSubscribersSynchronization.EndPublishtionAnItem(var no_item : integer);
+procedure TPublisherSubscribersSynchronization.EndPublishPushAnItem(var no_item : integer);
 var id_subscr : integer;
 begin
-  writeln('TPublisherSubscribersSynchronization.EndPublishtionAnItem(', no_item, ')');
+  //writeln('TPublisherSubscribersSynchronization.EndPublishPushAnItem(', no_item, ')');
 
   //  Pour chaque souscripteur, V(1)
   for id_subscr := 0 to High(syncData) do
@@ -271,17 +277,17 @@ begin
   no_item := (no_item + 1) mod _BufferCount;
 end;
 
-procedure TPublisherSubscribersSynchronization.BeginSubscribptionAnItem(id_subscr : Integer; var no_item : integer);
+procedure TPublisherSubscribersSynchronization.BeginSubscribTakeAnItem(id_subscr : Integer; var no_item : integer);
 begin
-  writeln('TPublisherSubscribersSynchronization.BeginSubscribptionAnItem(', no_item, ')');
+  //writeln('TPublisherSubscribersSynchronization.BeginSubscribTakeAnItem(', no_item, ')');
 
   // P(1)
   syncData[id_subscr].TokensToWrite.Wait;
 end;
 
-procedure TPublisherSubscribersSynchronization.EndSubscribptionAnItem(id_subscr : Integer; var no_item : integer);
+procedure TPublisherSubscribersSynchronization.EndSubscribTakeAnItem(id_subscr : Integer; var no_item : integer);
 begin
-  writeln('TPublisherSubscribersSynchronization.EndSubscribptionAnItem(', no_item, ')');
+  //writeln('TPublisherSubscribersSynchronization.EndSubscribTakeAnItem(', no_item, ')');
 
   // V(1)
   syncData[id_subscr].TokensWritten.Post;
@@ -298,8 +304,8 @@ begin
   if( sem = Pointer(-1) ) then
     raise EThreadExternalException.Create('Unable to init semaphore');
 
-  sem_id := (QWord(sem) >> 4) mod 1024;
-  writeln(' Thread ', GetCurrentThreadId, ' created sem ', QWord(sem), ' = ', sem_id, ' with ', Tokens, ' tokens');
+  //sem_id := (QWord(sem) >> 4) mod 1024;
+  //writeln(' Thread ', GetCurrentThreadId, ' created sem ', QWord(sem), ' = ', sem_id, ' with ', Tokens, ' tokens');
 
   sem_tokens := 0;
   if(Tokens > 0) then

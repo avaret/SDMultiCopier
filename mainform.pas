@@ -59,18 +59,28 @@ end;
 
 procedure TForm1.TimerProgressionTimer(Sender: TObject);
 begin
+  ProgressBar1.tag := IntPtr(pr.Progression - ProgressBar1.Position); // Contient donc la dérivée !
+  // Mais il faut mieux avoir une barre pour l'avancement + une pour la vitesse !
+
   if(pr <> nil) then
-    ProgressBar1.Step:= pr.Progression;
+    ProgressBar1.Position:= pr.Progression;
   if(c1 <> nil) then
-    ProgressBar2.Step:= c1.Progression;
+    ProgressBar2.Position:= c1.Progression;
   if(c2 <> nil) then
-    ProgressBar3.Step:= c2.Progression;
+    ProgressBar3.Position:= c2.Progression;
+
+  writeln('progression : ', ProgressBar1.Position, '/', ProgressBar2.Position, '/',  ProgressBar3.Position, ' delta pr = ', Integer(ProgressBar1.tag));
+
 
   // TODO if c*.Progression >= MAX, then Enabled := false
 end;
 
 procedure TForm1.Button1Click(Sender: TObject);
 begin
+  ProgressBar1.Max:= 9800;
+  ProgressBar2.Max:= 9800;
+  ProgressBar3.Max:= 9800;
+
   sync := TPublisherSubscribersSynchronization.Create(8);
   pr := TPublisher.Create('/tmp/pr', sync); // @pre:  cp /etc/services /tmp/pr
   c1 := TSubscriber.Create('/tmp/c1', sync);

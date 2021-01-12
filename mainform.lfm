@@ -8,32 +8,32 @@ object Form1: TForm1
   ClientWidth = 988
   LCLVersion = '2.0.6.0'
   object Button1: TButton
-    Left = 168
+    Left = 234
     Height = 25
-    Top = 208
+    Top = 16
     Width = 75
     Caption = 'Button1'
     OnClick = Button1Click
     TabOrder = 0
   end
   object ProgressBar1: TProgressBar
-    Left = 401
+    Left = 728
     Height = 20
-    Top = 200
+    Top = 32
     Width = 100
     TabOrder = 1
   end
   object ProgressBar2: TProgressBar
-    Left = 450
+    Left = 777
     Height = 20
-    Top = 254
+    Top = 86
     Width = 100
     TabOrder = 2
   end
   object ProgressBar3: TProgressBar
-    Left = 452
+    Left = 779
     Height = 20
-    Top = 289
+    Top = 121
     Width = 100
     TabOrder = 3
   end
@@ -51,18 +51,50 @@ object Form1: TForm1
     ZoomFactor = 1
   end
   object testthread: TButton
-    Left = 194
+    Left = 348
     Height = 25
-    Top = 282
+    Top = 16
     Width = 75
     Caption = 'testthread'
     OnClick = testthreadClick
     TabOrder = 5
+  end
+  object Button2: TButton
+    Left = 267
+    Height = 25
+    Top = 83
+    Width = 151
+    Caption = 'Créer un Avanceur'
+    OnClick = Button2Click
+    TabOrder = 6
+  end
+  object PanelAvanceurs: TPanel
+    Left = 64
+    Height = 282
+    Top = 208
+    Width = 853
+    Caption = 'PanelAvanceurs'
+    TabOrder = 7
+  end
+  object ButtonAbandonner: TButton
+    Left = 208
+    Height = 25
+    Top = 135
+    Width = 75
+    Caption = 'ButtonAbandonner'
+    OnClick = ButtonAbandonnerClick
+    TabOrder = 8
+    Visible = False
   end
   object TimerProgression: TTimer
     Enabled = False
     OnTimer = TimerProgressionTimer
     left = 8
     top = 16
+  end
+  object TrouverDisques: TTimer
+    OnTimer = TrouverDisquesTimer
+    left = 24
+    top = 80
   end
 end

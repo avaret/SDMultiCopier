@@ -9,7 +9,7 @@ uses
   Interfaces, // this includes the LCL widgetset
   Forms, MainForm,
   { you can add units after this }
-  SynchrosThreadsRW;
+  SynchrosThreadsRW, detectremovdisk;
 
 {$R *.res}
 

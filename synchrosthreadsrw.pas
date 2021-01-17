@@ -14,10 +14,10 @@ uses
   Classes, SysUtils, SyncObjs;
 
 const
-  BUFF_BLOCKCOUNT = 2;
-  BUFF_BLOCKSIZE  = 1;
-  BUFF_LENGTH = BUFF_BLOCKCOUNT * BUFF_BLOCKSIZE;
-
+  BUFF_BLOCKSIZE  = 1;    // Doit être un octet, car BlockRead|Write ne copie que des blocs entiers
+  BUFF_BLOCKCOUNT = 1<<16; // Nombre d'octets par itération de copie
+  BUFF_LENGTH = BUFF_BLOCKCOUNT * BUFF_BLOCKSIZE; // Taille du buffer = octets/itération
+  BUFF_COUNT = 16; // Nombre de buffers à utiliser en parallèle pour laisser le temps aux plus lents d'écrire
 
   { Classe utilisée pour synchroniser les threads }
 type TSemaphore = class
@@ -62,7 +62,7 @@ type TPublisherSubscribersSynchronization = class
     Index du tableau = id du souscripteur € 0..Nb_Subscriptors }
     syncData : array of TSyncDataItem;
 
-    constructor Create(BufferCount : integer);
+    constructor Create(BufferCount : integer = BUFF_COUNT);
     destructor Destroy; override;
 
     function RegisterSubscriber : Integer; { Chaque subscriber doit s'enregistrer en appelant cette fonction qui retourne un id unique }
@@ -92,13 +92,7 @@ type TAPublisherOrASubscriber = class(TThread)
     _synchro : TPublisherSubscribersSynchronization;
     _filename : string;
 
-  protected
-    // Les procédures et fonctions à instancier:
-    //OpenfileFunction : procedure(var f: File); virtual;
-    //ReadorwriteFunction : procedure(f: File; var Buf; buflen : longint; var result : integer); virtual;
-
   public
-
     { Variable initialisée à 0 et incrémentée à chaque bloc copié.
     C'est la responsabilité du MainThread de connaître le maximum pour faire avancer ses progressbar ! }
     Progression : integer;
@@ -129,7 +123,7 @@ begin
   _synchro := synchro;
   Progression := 0;
 
-  FreeOnTerminate := true;
+  FreeOnTerminate := False;
   inherited Create(createSuspendend);
 end;
 
@@ -157,12 +151,18 @@ begin
     _synchro.BeginPublishPushAnItem(no);
 
     BlockRead(f, _synchro.dataItems[no].Buffer, BUFF_BLOCKCOUNT, _synchro.dataItems[no].BufferLen);
+    if Terminated Then // Abandon prématuré de la copie
+      _synchro.dataItems[no].BufferLen := 0; // => on indique 0 octet à copier = EOF !
+
     eof := (_synchro.dataItems[no].BufferLen = 0);
     _synchro.dataItems[no].BufferId:= nodebug;
 
     _synchro.EndPublishPushAnItem(no);
 
-    Inc(Progression);
+    Sleep(2345); // debug mode
+
+    If not Terminated Then
+      Inc(Progression);
     Inc(nodebug);
   until eof;
 
@@ -191,12 +191,13 @@ begin
 
     ResultBlockWrite := 0;
     eof := _synchro.dataItems[no].BufferLen = 0; // A-t-on atteint la fin ?
-    if not eof then
+    if not eof and not Terminated then // Terminated=abandon prématuré de l'écriture => on consomme sans écrire pour ne pas bloquer tout le système
       BlockWrite(f, _synchro.dataItems[no].Buffer, _synchro.dataItems[no].BufferLen, ResultBlockWrite);
 
     _synchro.EndSubscribTakeAnItem(subscriber_uid, no);
 
-    Inc(Progression);
+    If not Terminated Then
+      Inc(Progression);
   until eof;
 
   // On ferme le fichier et on quitte.

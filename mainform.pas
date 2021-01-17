@@ -5,63 +5,110 @@ unit MainForm;
 interface
 
 uses
-  Classes, SysUtils, eventlog, Forms, Controls, Graphics, Dialogs, StdCtrls,
-  ComCtrls, ExtCtrls, RichMemo, SynEdit,
+  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls,
+  ExtCtrls, CheckLst, Buttons, RichMemo, SynEdit, Process, eventlog,
   SynchrosThreadsRW, detectRemovDisk;
 
 
 type
 
-  { TAvanceur : un panneau affichant l'état pour une carte mémoire }
+  { TAvanceur : un panneau affichant l'état pour une carte mémoire + le thread correpondant}
 
   TAvanceur = class(TPanel)
     lblCible : TLabel;
     prgProgression, prgRapidite : TProgressBar;
-    btnAbandonner : TButton;
+    btnAbandonner : TBitBtn;
     ownerForm : TForm;
 
-    constructor Create(TheOwner: TComponent; cCaption : String; avcMax : Integer);
+    procedure BtnAbandonnerClick(Sender: TObject);
+    constructor Create(TheOwner: TComponent); override;
+    constructor Create(TheOwnerPanel: TPanel; TheOwnerForm: TForm; cCaption : String; avcMax : Integer; thrDup : TAPublisherOrASubscriber);
   public
-    procedure Avancer(pas : Integer); // Pour faire avancer les barres de progression...
+    thrDuplicateur : TAPublisherOrASubscriber;
+
+    procedure Avancer(newpos : Integer); // Pour faire avancer les barres de progression...
     procedure SetRapiditeMax(newValue : Integer);
+
+    procedure Abort; // Pour arrêter la copie
   end;
 
 
 type
+  TModeAppli = (
+    maUnitialized,
+    maDisk2Disks,
+    maDisk2Img,
+    maImg2Disk );
 
-  { TForm1 }
 
-  TForm1 = class(TForm)
-    Button1: TButton;
-    Button2: TButton;
-    ButtonAbandonner: TButton;
+type
+
+  { TFormSDMultiCopier }
+
+  TFormSDMultiCopier = class(TForm)
+    BitBtnArreterLaCopie: TBitBtn;
+    BitBtnLancerLaCopie: TBitBtn;
+    CheckBoxDbgCopy: TCheckBox;
+    DiskTargets: TCheckListBox;
+    ImageAppliIcon: TImage;
+    ImageListProgression: TImageList;
+    ImgLoadFile: TBitBtn;
+    ImgSaveFile: TBitBtn;
+    DiskSource: TComboBox;
+    ImgFilename: TEdit;
+    GroupBoxDiskSrc: TGroupBox;
+    GroupBoxdisks: TGroupBox;
+    GroupBoxImage: TGroupBox;
+    GroupBoxMode: TGroupBox;
+    Label1: TLabel;
+    Label2: TLabel;
+    MemoImgNotes: TMemo;
+    OpenDialog1: TOpenDialog;
+    PageControlMainForm: TPageControl;
     PanelAvanceurs: TPanel;
-    testthread: TButton;
-    ProgressBar1: TProgressBar;
-    ProgressBar2: TProgressBar;
-    ProgressBar3: TProgressBar;
+    ProcessEject: TProcess;
+    ProcessSync: TProcess;
+    SaveDialog1: TSaveDialog;
+    SpeedButton1: TSpeedButton;
+    SpeedButton2: TSpeedButton;
+    SpeedButton3: TSpeedButton;
+    Splitter1: TSplitter;
+    TabSheetconf: TTabSheet;
+    TabSheetCopying: TTabSheet;
     AppLog: TRichMemo;
-    TrouverDisques: TTimer;
+    TimerSauverNotesPerso: TTimer;
     TimerProgression: TTimer;
-    procedure Button1Click(Sender: TObject);
-    procedure Button2Click(Sender: TObject);
-    procedure ButtonAbandonnerClick(Sender: TObject);
-    procedure testthreadClick(Sender: TObject);
+    TimerTrouverDisques: TTimer;
+    procedure BitBtnArreterLaCopieClick(Sender: TObject);
+    procedure BitBtnLancerLaCopieClick(Sender: TObject);
+    procedure DiskSourceSelect(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure ImgLoadFileClick(Sender: TObject);
+    procedure ImgSaveFileClick(Sender: TObject);
+    procedure MemoImgNotesChange(Sender: TObject);
+    procedure SpeedButton1Click(Sender: TObject);
     procedure TimerProgressionTimer(Sender: TObject);
     procedure ChangerRapidite(newValue : integer);
-    procedure TrouverDisquesTimer(Sender: TObject);
+    procedure TimerSauverNotesPersoTimer(Sender: TObject);
+    procedure TimerTrouverDisquesTimer(Sender: TObject);
   private
+    FModeAppli : TModeAppli;
+    FCopyInProgress : boolean;
+    procedure SetCopyInProgress(NewValue : boolean); // Met à jour l'ihm en conséquence
+    procedure SetModeAppli(NewValue : TModeAppli); // Met à jour l'ihm en conséquence
 
   public
     sync : TPublisherSubscribersSynchronization;
-    pr : TPublisher;
-    c1, c2 : TSubscriber;
 
     Avanceurs : array of TAvanceur;
+
+    procedure AddAppLog(Msg : String);
+    property CopyInProgress : boolean read FCopyInProgress write SetCopyInProgress;
+    property Modeappli: TModeAppli read FModeAppli write SetModeAppli;
   end;
 
 var
-  Form1: TForm1;
+  FormSDMultiCopier: TFormSDMultiCopier;
 
 implementation
 
@@ -70,11 +117,17 @@ implementation
 
 { TAvanceur }
 
-constructor TAvanceur.Create(TheOwner: TComponent; cCaption : String; avcMax : Integer);
+constructor TAvanceur.Create(TheOwner: TComponent);
 begin
-  inherited Create(TheOwner);
-  Parent := TheOwner as TPanel;
-  ownerForm := (TheOwner.GetParentComponent as TForm); // Déclenchera une exception sinon
+  TheOwner := TheOwner;
+  raise EInvalidOp.Create('Il ne faut pas appeler ce constructeur mais le suivant.');
+end;
+
+constructor TAvanceur.Create(TheOwnerPanel: TPanel; TheOwnerForm: TForm; cCaption : String; avcMax : Integer; thrDup : TAPublisherOrASubscriber);
+begin
+  inherited Create(TheOwnerPanel);
+  Parent := TheOwnerPanel;
+  ownerForm := TheOwnerForm;
 
   Align := alTop;
   Height := 50;
@@ -88,9 +141,18 @@ begin
   lblCible.Align:=alLeft;
   lblCible.BorderSpacing.Around:=8;
 
+  prgRapidite := TProgressBar.Create(Self);
+  prgRapidite.Parent := Self;
+  prgRapidite.Width:= 200;
+  prgRapidite.Max:= 50;
+  prgRapidite.BarShowText:=true;
+  prgRapidite.Smooth:=true;
+  prgRapidite.Align:=alLeft;
+  prgRapidite.BorderSpacing.Around:=8;
+  prgRapidite.Color:=clGreen;
+
   prgProgression := TProgressBar.Create(Self);
   prgProgression.Parent := Self;
-  prgProgression.Left:= 100;
   prgProgression.Width:= 200;
   prgProgression.Max:= avcMax;
   prgProgression.BarShowText:=true;
@@ -98,33 +160,28 @@ begin
   prgProgression.Align:=alLeft;
   prgProgression.BorderSpacing.Around:=8;
 
-  prgRapidite := TProgressBar.Create(Self);
-  prgRapidite.Parent := Self;
-  prgRapidite.Left:= 350;
-  prgRapidite.Width:= 200;
-  prgRapidite.Max:= 50;
-  prgRapidite.BarShowText:=true;
-  prgRapidite.Smooth:=true;
-  prgRapidite.Align:=alLeft;
-  prgRapidite.BorderSpacing.Around:=8;
 
-  btnAbandonner := TButton.Create(Self);
+  btnAbandonner := TBitBtn.Create(Self);
   btnAbandonner.Parent := Self;
-  btnAbandonner.Left:=600;
-  btnAbandonner.OnClick := (ownerForm as TForm1).ButtonAbandonner.OnClick; // MainForm...
+  btnAbandonner.OnClick := @BtnAbandonnerClick;
   btnAbandonner.Align:=alLeft;
+  btnAbandonner.Kind:=bkCancel;
+  btnAbandonner.Caption:='Stop';
+
+  thrDuplicateur := thrDup;
+  // thrDup est faiblement couplé à TAvanceur : celui qui passe cette variable est aussi responsable de sa gestion...
 end;
 
-procedure TAvanceur.Avancer(pas : Integer); // Pour faire avancer les barres de progression...
-var rapid : Integer;
+procedure TAvanceur.Avancer(newpos : Integer); // Pour faire avancer les barres de progression...
+var rapid, oldProgression : Integer;
 begin
-  prgProgression.Tag := prgProgression.Position; // On stocke l'ancienne valeur
-  prgProgression.StepBy(pas); // On avance le curseur
-  rapid := prgProgression.Position - Integer(prgProgression.Tag); // Et on calcule la dérivée pour avoir la vitesse
+  oldProgression := prgProgression.Position; // On stocke l'ancienne valeur
+  prgProgression.Position := newpos; // On avance le curseur
+  rapid := newpos - oldProgression; // Et on calcule la dérivée pour avoir la vitesse
   if rapid > prgRapidite.Max Then
   Begin
-    // Changer la Rapidité Max pour tous les indicateurs
-    (ownerForm as TForm1).ChangerRapidite(round(rapid * 1.05));
+    // Changer la Rapidité Max pour *tous* les indicateurs d'avancement
+    (ownerForm as TFormSDMultiCopier).ChangerRapidite(round(rapid * 1.05));
   end;
   prgRapidite.Position := rapid;
 end;
@@ -134,102 +191,489 @@ Begin
   prgRapidite.Max:= newValue;
 end;
 
-{ TForm1 }
-          {
-procedure TForm1.CallbackCopy(Sender: TObject; AData : Pointer);
+procedure TAvanceur.BtnAbandonnerClick(Sender: TObject);
 begin
-  TThread.Synchronize(
-    (Sender as TProgressBar).StepIt
-    );
-end;     }
-
-procedure TForm1.testthreadClick(Sender: TObject);
-begin
-
+  Abort;
 end;
 
-procedure TForm1.TimerProgressionTimer(Sender: TObject);
-var i : Integer;
+
+procedure TAvanceur.Abort;
 begin
-  If False Then
-    Begin
-      // Pour tester les algos de synchro
+  Color:=clRed;
+  Font.StrikeThrough := True;
+  prgRapidite.Visible := False;
+  thrDuplicateur.Terminate;
+  (ownerForm as TFormSDMultiCopier).AddAppLog('Arrêt demandé de l''entité ' + lblCible.Caption);
+end;
 
-      ProgressBar1.tag := IntPtr(pr.Progression - ProgressBar1.Position); // Contient donc la dérivée !
-      // Mais il faut mieux avoir une barre pour l'avancement + une pour la vitesse !
+{ TFormSDMultiCopier }
 
-      if(pr <> nil) then
-        ProgressBar1.Position:= pr.Progression;
-      if(c1 <> nil) then
-        ProgressBar2.Position:= c1.Progression;
-      if(c2 <> nil) then
-        ProgressBar3.Position:= c2.Progression;
+procedure StartThenWaitforProcessTermination(P : TProcess);
+begin
+  P.Active:=True;
+  while P.Running do
+    begin
+      Application.ProcessMessages;
+      sleep(250);
+    end;
+end;
 
-      writeln('progression : ', ProgressBar1.Position, '/', ProgressBar2.Position, '/',  ProgressBar3.Position, ' delta pr = ', Integer(ProgressBar1.tag));
+procedure TFormSDMultiCopier.TimerProgressionTimer(Sender: TObject);
+var i, avc, avcmax, avc_per20 : Integer;
+  // avc = 250 [octets], avc max = 1000 octets, avc_per20 = 5 (car 5/20 = 25% = 250/1000
+  unAvanceurEstVivant : boolean = false;
+begin
+  for i := 0 to High(Avanceurs) do
+  begin
+    // On fait toujours avancer la barre, même si c'est fini, pour indiquer la fin.
+    Avanceurs[i].Avancer(Avanceurs[i].thrDuplicateur.Progression * BUFF_LENGTH);
+    if not Avanceurs[i].thrDuplicateur.Finished Then
+      unAvanceurEstVivant := true;
+  end;
 
+  // La 1re fois que l'on détecte la fin de la duplication...
+  If not unAvanceurEstVivant and (TimerProgression.Tag = 0) Then
+  begin
+    AddAppLog('Finalisation...');
 
-      // TODO if c*.Progression >= MAX, then Enabled := false
-    end else begin
-      AppLog.Lines.Add('avancement...');
-      // Pour tester le panneau d'avanceur
-      for i := 0 to High(Avanceurs) do
-        Avanceurs[i].Avancer(random(10));
-      Refresh;
+    // On "désactive" cette section du timer pour ces opérations qui peuvent prendre du temps...
+    TimerProgression.Tag := 1;
+
+    // sync
+    AddAppLog('Attente que les disques aient réellement écrits leurs données (vidange des caches)...');
+    StartThenWaitforProcessTermination(ProcessSync);
+
+    // éjecter systématiquement tous les disques cibles
+    if Modeappli <> maDisk2Img then
+    begin
+      AddAppLog('Éjection des disques cibles...');
+      for i := 0 to DiskTargets.Items.Count - 1 do
+        if DiskTargets.Checked[i] Then
+        Begin
+          ProcessEject.Parameters.Text := DiskTargets.Items[i]; // Un seul paramètre!
+          StartThenWaitforProcessTermination(ProcessEject);
+        End;
+      AddAppLog('Éjection des disques terminés. Opération de duplication terminée.');
     end;
 
+    // La copie est terminée ou elle a été abandonnée
+    // On remet l'affichage à l'état avant la copie+désactive le CopyInProgress
+    SetModeAppli(Modeappli);
+    TabSheetCopying.Caption := 'pas de copie en cours...';
+    AddAppLog('Fin de la copie.');
+
+    // On réactive cette section du timer
+    TimerProgression.Tag := 0;
+  end else begin
+    // Faire tourner une icône en forme de CD pour indiquer l'avancement
+
+    // on calcule la progression (%)
+    avcmax := Avanceurs[0].prgProgression.Max;
+    avc := avcmax;
+    for i := 0 to High(Avanceurs) do
+      if Avanceurs[i].prgProgression.Position < avc Then
+        avc := Avanceurs[i].prgProgression.Position;
+    avc_per20 := round((avc / avcmax) * 20);
+
+    TabSheetCopying.Caption := 'Capie en cours... (' +  round((avc / avcmax) * 100).ToString + '%)';
+
+    // Permet d'avoir une progression continue = "sans fin"
+    ImageListProgression.Tag:= (ImageListProgression.Tag + 1) mod 21;
+
+    // Icône de l'application (barre des tâches)+de la fenêtre : progression (%)
+    ImageListProgression.GetBitmap(avc_per20, ImageAppliIcon.Picture.Bitmap);
+    Application.Icon.Assign(ImageAppliIcon.Picture.Graphic);
+
+    // Icône de l'onglet : progression continue (à faire APRES l'Appli.Icon)
+    TabSheetCopying.ImageIndex:= ImageListProgression.Tag;
+  end;
 
 end;
 
-procedure TForm1.Button1Click(Sender: TObject);
+
+procedure TFormSDMultiCopier.DiskSourceSelect(Sender: TObject);
+var idx : integer;
 begin
-  ProgressBar1.Max:= 9800;
-  ProgressBar2.Max:= 9800;
-  ProgressBar3.Max:= 9800;
+  // Par défaut tous les disques trouvés sont des cibles potentielles
+  for idx := 0 to DiskTargets.Items.Count -1 do
+    DiskTargets.Checked[idx] := True;
 
-  sync := TPublisherSubscribersSynchronization.Create(8);
-  pr := TPublisher.Create('/tmp/pr', sync); // @pre:  cp /etc/services /tmp/pr
-  c1 := TSubscriber.Create('/tmp/c1', sync);
-  c2 := TSubscriber.Create('/tmp/c2', sync);
-
-  TimerProgression.Enabled:= True;
-  pr.Resume; // Maintenant que tous les souscripteurs sont arrivés, on le lance
+  // Mais un disque sélectionné comme source ne peut être aussi la cible
+  idx := DiskTargets.Items.IndexOf(DiskSource.Text);
+  if idx >= 0 then
+    DiskTargets.Checked[idx] := False;
 end;
 
-procedure TForm1.Button2Click(Sender: TObject);
+
+function IsNotRoot : boolean;
+Begin
+  Result := GetUserDir = '/root/';
+end;
+
+procedure TFormSDMultiCopier.FormCreate(Sender: TObject);
+var Year, Month, Day : word;
 begin
-  SetLength(Avanceurs, Length(Avanceurs)+1);
-  Avanceurs[High(Avanceurs)] := TAvanceur.Create(PanelAvanceurs, 'Coucou '+IntToStr(random(10)), 999);
-  AppLog.Lines.Add('Ajout d''un avanceur');
-  TimerProgression.Enabled:= true;
+  CheckBoxDbgCopy.Visible:= CheckBoxDbgCopy.Checked;
+  if (not IsNotRoot) and (not CheckBoxDbgCopy.Checked) then
+    ShowMessage('Attention, cette application *DOIT* être lancée en super-utilisateur (root) '+
+    'pour pouvoir copier les disques.');
+
+  Modeappli:= maUnitialized;
+  OpenDialog1.InitialDir:= GetUserDir() + '/Images';
+  SaveDialog1.InitialDir:= OpenDialog1.InitialDir;
+  If not DirectoryExists(OpenDialog1.InitialDir) Then
+    mkdir(OpenDialog1.InitialDir);
+
+  DecodeDate(Date, Year, Month, Day);
+  ImgFilename.Text:= Format('%s/%d-%.2d-%.2d mon image.img',
+    [OpenDialog1.InitialDir, Year, Month, Day ]);
+
+  Avanceurs := nil;
 end;
 
-procedure TForm1.ButtonAbandonnerClick(Sender: TObject);
-var Avanceur : TAvanceur;
+
+procedure TFormSDMultiCopier.SetModeAppli(NewValue : TModeAppli);
 begin
-  AppLog.Lines.Add('Abandon d''un avanceur');
-  Avanceur := (Sender as TButton).Parent as TAvanceur;
-  Avanceur.Color:=clRed;
+  FModeAppli:= NewValue;
+  case NewValue of
+  maUnitialized: begin
+        GroupBoxDiskSrc.Visible:= False;
+        GroupBoxImage.Visible:= False;
+        GroupBoxdisks.Visible:= False;
+    end;
+  maDisk2Disks: begin
+        GroupBoxDiskSrc.Visible:= True;
+        GroupBoxImage.Visible:= False;
+        GroupBoxdisks.Visible:= True;
+    end;
+  maDisk2Img: begin
+        GroupBoxDiskSrc.Visible:= True;
+        GroupBoxImage.Visible:= True;
+        ImgSaveFile.Visible:= True;
+        ImgLoadFile.Visible:= False;
+        GroupBoxdisks.Visible:= False;
+    end;
+  maImg2Disk: begin
+        GroupBoxDiskSrc.Visible:= False;
+        GroupBoxImage.Visible:= True;
+        ImgSaveFile.Visible:= False;
+        ImgLoadFile.Visible:= True;
+        GroupBoxdisks.Visible:= True;
+    end;
+
+  end;
+
+  BitBtnLancerLaCopie.Visible := NewValue <> maUnitialized;
+
+  // Met à jour aussi les composants suivant la var Copyinprogress
+  CopyInProgress:=False;
 end;
 
-procedure TForm1.ChangerRapidite(newValue : integer);
+
+procedure TFormSDMultiCopier.BitBtnLancerLaCopieClick(Sender: TObject);
+var Source, Cibles, PrefixDbg : String;
+  i, idx, SourceLength, NbCibles : integer;
+  SourceFile : File;
+begin
+  TimerProgression.Enabled := false;
+  AddAppLog('Vérifications...');
+  try
+    // debug: utiliser /tmp/dev/sdX au lieu de /dev/sdX
+    if CheckBoxDbgCopy.Enabled Then
+      PrefixDbg := '/tmp'
+    else
+      PrefixDbg := '';
+
+
+    // Vérification de ce que l'utilisateur demande
+    if Modeappli = maUnitialized then
+      raise EInvalidOperation.Create('Impossible de lancer une copie sans avoir sélectionné un mode.');
+
+    if Modeappli = maImg2Disk then
+    begin
+      // Source = une image locale
+      Source := ImgFilename.Caption;
+    end else begin
+      // Source = un disque
+      Source := DiskSource.Caption;
+    end;
+
+    If not FileExists(Source) Then
+      raise EFileNotFoundException.Create('Le disque source <'+DiskSource.Caption+'> n''existe pas.');
+
+    if Modeappli = maDisk2Img then
+    begin
+      // Cible = une image locale
+      NbCibles := 1;
+      Cibles := ImgFilename.Caption;
+      if(FileExists(Cibles)) Then
+      Begin
+        if MessageDlg('Destruction du fichier cible',
+          'Le fichier indiqué pour recevoir l''image existe déjà et sera donc écrasé intégralement.'+
+          'Êtes-vous sûr de vouloir continuer et écraser le fichier '+Cibles+' ?',
+          mtConfirmation, mbYesNoCancel, 0) = mrCancel Then
+          Exit;
+      end;
+
+    end else begin
+      // Cible = un/des disques
+      NbCibles := 0;
+
+      for idx := 0 to DiskTargets.Items.Count - 1 do
+        if DiskTargets.Checked[idx] Then
+        begin
+          Inc(NbCibles);
+
+          if not listDisks_linear.Contains(DiskTargets.Items[idx]) Then
+            raise EFileNotFoundException.Create('Le disque '+DiskTargets.Items[idx]+' n''existe pas/plus...');
+
+          if DiskTargets.Items[idx] = Source Then
+            raise EInvalidOperation.Create('Impossible de sélectionner un disque comme Source ET Cible.');
+        end;
+
+      if NbCibles = 0 Then
+        raise EInvalidOperation.Create('Il est nécessaire de cocher au moins un disque cible.');
+
+    end;
+
+    // Démarrage de la copie
+    AddAppLog('Vérifications terminées, démarrage de la copie...');
+
+    // S'il y a déjà eu une copie, on nettoie...
+    if Avanceurs <> nil then
+      for i := High(Avanceurs) downto 0 do
+        Avanceurs[i].Free;
+
+    // Il y aura 1 source + N cibles
+    SetLength(Avanceurs, 1 + NbCibles);
+    AddAppLog(IntToStr(Length(Avanceurs)) + ' entitées de copie');
+
+    try
+      // La source a une taille de X en octets, servant aux calculs de progressions
+      AssignFile(SourceFile, PrefixDbg + Source);
+      Reset(SourceFile, 1);
+      SourceLength := FileSize(SourceFile); // FIXME risque d'échouer...
+      AddAppLog('La source fait '+IntToStr(SourceLength) + ' octets à dupliquer');
+    finally
+      CloseFile(SourceFile);
+    end;
+
+    // tout sera synchronisé par l'objet sync
+    sync := TPublisherSubscribersSynchronization.Create();
+
+    // La source, qu'elle soit un fichier ou un disque:
+    Avanceurs[0] := TAvanceur.Create(
+      PanelAvanceurs,
+      Self,
+      'Source: ' + PrefixDbg + Source,
+      SourceLength,
+      TPublisher.Create(PrefixDbg + Source, sync)
+      );
+
+    // Les cibles:
+    if Modeappli = maDisk2Img Then
+    begin
+      // La cible est un fichier image
+      Avanceurs[1] := TAvanceur.Create(
+          PanelAvanceurs,
+          Self,
+          'Cible: ' + ImgFilename.Caption,
+          SourceLength,
+          TSubscriber.Create(ImgFilename.Caption, sync)
+        );
+      AddAppLog(Source + ' --> ' + ImgFilename.Caption);
+    end else begin
+      // Les cibles sont des disques
+      idx := 0;
+      Cibles := '';
+      for  i := 0 to DiskTargets.Items.Count - 1 do
+      if DiskTargets.Checked[i] Then
+      Begin
+        Inc(idx);
+        Avanceurs[idx] := TAvanceur.Create(
+          PanelAvanceurs,
+          Self,
+          'Cible: ' + PrefixDbg + DiskTargets.Items[i],
+          SourceLength,
+          TSubscriber.Create(PrefixDbg + DiskTargets.Items[i], sync)
+        );
+        Cibles := Cibles + PrefixDbg + DiskTargets.Items[i] + ' ';
+      End;
+
+      AddAppLog(Source + ' --> { ' + Cibles + '}');
+    end;
+
+    // Lancement du processus
+    CopyInProgress:= TRUE; // Met à jour l'IHM
+    Avanceurs[0].thrDuplicateur.Start;
+
+  except
+    // En cas d'erreur, on tente de restaurer un état "configuration"
+    On E: Exception Do
+    Begin
+      TimerProgression.Enabled := false;
+      TimerTrouverDisques.Enabled := Modeappli <> maUnitialized;
+      Avanceurs := nil;
+      AddAppLog('échec du démarrage de la copie : '+E.Message);
+      ShowMessage(E.Message);
+    End;
+  end;
+end;
+
+procedure TFormSDMultiCopier.BitBtnArreterLaCopieClick(Sender: TObject);
+var i : integer;
+begin
+  for i := 0 to High(Avanceurs) do
+    Avanceurs[i].Abort;
+  TabSheetCopying.Caption := 'Capie annulée !';
+end;
+
+procedure TFormSDMultiCopier.SetCopyInProgress(NewValue: boolean);
+begin
+  FCopyInProgress:=NewValue;
+
+  TabSheetCopying.Visible:= CopyInProgress;
+  GroupBoxMode.Enabled:= not CopyInProgress;
+  GroupBoxDiskSrc.Enabled:= not CopyInProgress;
+  GroupBoxImage.Enabled:= not CopyInProgress;
+  GroupBoxdisks.Enabled:= not CopyInProgress;
+  BitBtnLancerLaCopie.Enabled:=not CopyInProgress;
+  BitBtnArreterLaCopie.Enabled:= CopyInProgress;
+
+  If(CopyInProgress) Then
+  begin
+    PageControlMainForm.ActivePage := TabSheetCopying;
+    TabSheetCopying.Caption := 'Capie en cours...';
+    TabSheetCopying.TabVisible:=True; // On le rend visible à la première copie
+  end
+  else
+  begin
+    PageControlMainForm.ActivePage := TabSheetconf;
+  end;
+
+  Self.Caption := 'SD Multi-Copieur (' + PageControlMainForm.ActivePage.Caption + ')';
+
+  TimerProgression.Enabled := CopyInProgress;
+  TimerTrouverDisques.Enabled:= (not CopyInProgress) and (FModeAppli <> maUnitialized);
+end;
+
+procedure TFormSDMultiCopier.ImgLoadFileClick(Sender: TObject);
+begin
+  If OpenDialog1.Execute Then
+  Begin
+    ImgFilename.Text:=OpenDialog1.FileName;
+    If(FileExists(ImgFilename.Text + '.txt')) Then
+      MemoImgNotes.Lines.LoadFromFile(ImgFilename.Text + '.txt');
+  end;
+end;
+
+procedure TFormSDMultiCopier.ImgSaveFileClick(Sender: TObject);
+begin
+  If SaveDialog1.Execute Then
+  begin
+    ImgFilename.Text:=SaveDialog1.FileName;
+    If(FileExists(ImgFilename.Text + '.txt')) Then
+      MemoImgNotes.Lines.LoadFromFile(ImgFilename.Text + '.txt');
+  end;
+end;
+
+procedure TFormSDMultiCopier.MemoImgNotesChange(Sender: TObject);
+begin
+  TimerSauverNotesPerso.Enabled:=False; //Init le timer| réinitialiser le délai
+  TimerSauverNotesPerso.Enabled:=True;
+end;
+
+procedure TFormSDMultiCopier.SpeedButton1Click(Sender: TObject);
+var SendBtn : TSpeedButton;
+begin
+  SendBtn := (Sender as TSpeedButton);
+  AddAppLog(SendBtn.Caption);
+  SendBtn.Down:= True;
+  Case SendBtn.Tag of
+    1: Modeappli:= maDisk2Disks;
+    2: Modeappli:= maDisk2Img;
+    3: Modeappli:= maImg2Disk;
+  end;
+
+end;
+
+procedure TFormSDMultiCopier.ChangerRapidite(newValue : integer);
 var i : integer;
 begin
   for i := 0 to High(Avanceurs) do
     Avanceurs[i].SetRapiditeMax(newValue);
 end;
 
-procedure TForm1.TrouverDisquesTimer(Sender: TObject);
-var i : Integer; S : string;
+procedure TFormSDMultiCopier.TimerSauverNotesPersoTimer(Sender: TObject);
+begin
+  // Le timer ne se redéclenchera pas jusqu'à la prochaine modif
+  TimerSauverNotesPerso.Enabled:=False;
+
+  try
+    MemoImgNotes.Lines.SaveToFile(ImgFilename.Text + '.txt');
+  except
+    On E : Exception do
+      ShowMessage('Impossible d''enregistrer les notes personnelles.'#13#10 + E.Message);
+  end;
+end;
+
+procedure TFormSDMultiCopier.TimerTrouverDisquesTimer(Sender: TObject);
+var i : Integer;
 begin
   // Récupération des disques amovibles
   identifierDisquesAmovibles();
-  S := '';
+
+  // ajout des disques (si nécessaire) aux 2 listes
   if(listDisks <> nil) Then
-    for i := 0 to High(listDisks) do
-      S := S + ' ' + listDisks[i];
-  if S <> '' Then
-    AppLog.Lines.Add('Les disques amovibles sont : ' + S);
+    for i := 0 to High(listDisks) do // Ajout des disques branchés
+    begin
+      if DiskSource.Items.IndexOf(listDisks[i]) < 0 then
+        DiskSource.Items.Add(listDisks[i]);;
+      if DiskTargets.Items.IndexOf(listDisks[i]) < 0 then
+      begin
+        DiskTargets.Items.Add(listDisks[i]);;
+        DiskTargets.Checked[DiskTargets.Items.Count-1] := true;
+      end;
+    end;
+
+   // Suppression des disques débranchés
+  for i := DiskSource.Items.Count-1 downto 0 do
+    if not listDisks_linear.Contains(DiskSource.Items[i]) Then
+      DiskSource.Items.Delete(i);
+  for i := DiskTargets.Items.Count-1 downto 0 do
+    if not listDisks_linear.Contains(DiskTargets.Items[i]) Then
+      DiskTargets.Items.Delete(i);
+
 end;
+
+
+procedure TFormSDMultiCopier.AddAppLog(Msg : String);
+var //A : Integer;
+  Sab, Sbc : String;
+Begin
+  // Ajouter le texte
+  //A := AppLog.GetTextLen;
+  Sab := '[' + TimeToStr(Time) + '] ';
+  //B := A + Sab.Length;
+  Sbc := Msg;
+  AppLog.Append(Sab + Sbc);
+
+  // Colorer
+  //AppLog.SetRangeColor(A, Sab.Length, clBlue);  //TODO à débuguer... ou passer sur du html !
+  //AppLog.SetRangeColor(B, Msg.Length, clBlack);
+
+  // Mettre le curseur à la fin
+  AppLog.SelStart := AppLog.GetTextLen;
+end;
+
+{ /usr/share/icons/elementary/animations/48/  -> Avancement global (5%/5%, Brasero)
+
+cd /usr/share/icons/elementary/animations/48/
+for f in *.svg ; do
+  inkscape $f -e ~/SuperSDCopier/SDMultiCopier/ImagesProgression/$   f/svg/png
+done
+cd -
+}
 
 end.
 

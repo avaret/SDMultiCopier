@@ -6,9 +6,12 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls,
-  ExtCtrls, CheckLst, Buttons, RichMemo, SynEdit, Process, eventlog,
+  ExtCtrls, CheckLst, Buttons, RichMemo, SynEdit, Process,
   SynchrosThreadsRW, detectRemovDisk;
 
+
+const
+  ProgressBarAvancement_Diviser = 1 << 10; // La progressbar ne sera pas en octets mais en Kio
 
 type
 
@@ -22,7 +25,7 @@ type
 
     procedure BtnAbandonnerClick(Sender: TObject);
     constructor Create(TheOwner: TComponent); override;
-    constructor Create(TheOwnerPanel: TPanel; TheOwnerForm: TForm; cCaption : String; avcMax : Integer; thrDup : TAPublisherOrASubscriber);
+    constructor Create(TheOwnerPanel: TPanel; TheOwnerForm: TForm; cCaption : String; avcMax : Int64; thrDup : TAPublisherOrASubscriber);
   public
     thrDuplicateur : TAPublisherOrASubscriber;
 
@@ -82,6 +85,7 @@ type
     procedure BitBtnArreterLaCopieClick(Sender: TObject);
     procedure BitBtnLancerLaCopieClick(Sender: TObject);
     procedure DiskSourceSelect(Sender: TObject);
+    procedure FormCloseQuery(Sender: TObject; var CanClose: boolean);
     procedure FormCreate(Sender: TObject);
     procedure ImgLoadFileClick(Sender: TObject);
     procedure ImgSaveFileClick(Sender: TObject);
@@ -101,6 +105,8 @@ type
     sync : TPublisherSubscribersSynchronization;
 
     Avanceurs : array of TAvanceur;
+
+    HeureDebutCopie : TDateTime; // Pour estimer l'avancement
 
     procedure AddAppLog(Msg : String);
     property CopyInProgress : boolean read FCopyInProgress write SetCopyInProgress;
@@ -123,7 +129,8 @@ begin
   raise EInvalidOp.Create('Il ne faut pas appeler ce constructeur mais le suivant.');
 end;
 
-constructor TAvanceur.Create(TheOwnerPanel: TPanel; TheOwnerForm: TForm; cCaption : String; avcMax : Integer; thrDup : TAPublisherOrASubscriber);
+constructor TAvanceur.Create(TheOwnerPanel: TPanel; TheOwnerForm: TForm; cCaption : String; avcMax : Int64; thrDup : TAPublisherOrASubscriber);
+const progressBarWidth = 300;
 begin
   inherited Create(TheOwnerPanel);
   Parent := TheOwnerPanel;
@@ -143,7 +150,7 @@ begin
 
   prgRapidite := TProgressBar.Create(Self);
   prgRapidite.Parent := Self;
-  prgRapidite.Width:= 200;
+  prgRapidite.Width:= progressBarWidth;
   prgRapidite.Max:= 50;
   prgRapidite.BarShowText:=true;
   prgRapidite.Smooth:=true;
@@ -153,8 +160,8 @@ begin
 
   prgProgression := TProgressBar.Create(Self);
   prgProgression.Parent := Self;
-  prgProgression.Width:= 200;
-  prgProgression.Max:= avcMax;
+  prgProgression.Width:= progressBarWidth;
+  prgProgression.Max:= avcMax div ProgressBarAvancement_Diviser;
   prgProgression.BarShowText:=true;
   prgProgression.Smooth:=true;
   prgProgression.Align:=alLeft;
@@ -178,6 +185,7 @@ begin
   oldProgression := prgProgression.Position; // On stocke l'ancienne valeur
   prgProgression.Position := newpos; // On avance le curseur
   rapid := newpos - oldProgression; // Et on calcule la dérivée pour avoir la vitesse
+  rapid := rapid * 2; // le TimerProgression appelle "Avancer" deux fois par seconde.
   if rapid > prgRapidite.Max Then
   Begin
     // Changer la Rapidité Max pour *tous* les indicateurs d'avancement
@@ -222,11 +230,13 @@ procedure TFormSDMultiCopier.TimerProgressionTimer(Sender: TObject);
 var i, avc, avcmax, avc_per20 : Integer;
   // avc = 250 [octets], avc max = 1000 octets, avc_per20 = 5 (car 5/20 = 25% = 250/1000
   unAvanceurEstVivant : boolean = false;
+  DureeTotaleEstimee : TDateTime;//longint; // ms [longint = TDateTimeStamp.time]
+  progressionStr : String;
 begin
   for i := 0 to High(Avanceurs) do
   begin
     // On fait toujours avancer la barre, même si c'est fini, pour indiquer la fin.
-    Avanceurs[i].Avancer(Avanceurs[i].thrDuplicateur.Progression * BUFF_LENGTH);
+    Avanceurs[i].Avancer(Avanceurs[i].thrDuplicateur.Progression * BUFF_LENGTH div ProgressBarAvancement_Diviser);
     if not Avanceurs[i].thrDuplicateur.Finished Then
       unAvanceurEstVivant := true;
   end;
@@ -275,10 +285,23 @@ begin
         avc := Avanceurs[i].prgProgression.Position;
     avc_per20 := round((avc / avcmax) * 20);
 
-    TabSheetCopying.Caption := 'Capie en cours... (' +  round((avc / avcmax) * 100).ToString + '%)';
+    progressionStr := ' (' +  round((avc / avcmax) * 100).ToString + '%)';
+    TabSheetCopying.Caption := 'Copie en cours... ' + progressionStr;
 
     // Permet d'avoir une progression continue = "sans fin"
     ImageListProgression.Tag:= (ImageListProgression.Tag + 1) mod 21;
+
+    // A chaque tour, on calcule l'heure estimée de fin
+    if ImageListProgression.Tag mod 21 = 0 Then
+    Begin
+      DureeTotaleEstimee := TimeStampToDateTime( MSecsToTimeStamp( round((
+        (DateTimeToTimeStamp(Now).Time - DateTimeToTimeStamp(HeureDebutCopie).Time)
+        /
+        (avc / avcmax))) ) );
+      AddAppLog(' Fin estimée à : '+TimeToStr(DureeTotaleEstimee - HeureDebutCopie)
+        + ', soit dans '+TimeToStr(Time + DureeTotaleEstimee - HeureDebutCopie)
+        + progressionStr);
+    end;
 
     // Icône de l'application (barre des tâches)+de la fenêtre : progression (%)
     ImageListProgression.GetBitmap(avc_per20, ImageAppliIcon.Picture.Bitmap);
@@ -304,8 +327,17 @@ begin
     DiskTargets.Checked[idx] := False;
 end;
 
+procedure TFormSDMultiCopier.FormCloseQuery(Sender: TObject;
+  var CanClose: boolean);
+begin
+  if CopyInProgress then
+    BitBtnArreterLaCopieClick(Sender);
 
-function IsNotRoot : boolean;
+  CanClose := True;
+end;
+
+
+function IsRoot : boolean;
 Begin
   Result := GetUserDir = '/root/';
 end;
@@ -314,12 +346,12 @@ procedure TFormSDMultiCopier.FormCreate(Sender: TObject);
 var Year, Month, Day : word;
 begin
   CheckBoxDbgCopy.Visible:= CheckBoxDbgCopy.Checked;
-  if (not IsNotRoot) and (not CheckBoxDbgCopy.Checked) then
+  if (not IsRoot) and (not CheckBoxDbgCopy.Checked) then
     ShowMessage('Attention, cette application *DOIT* être lancée en super-utilisateur (root) '+
     'pour pouvoir copier les disques.');
 
   Modeappli:= maUnitialized;
-  OpenDialog1.InitialDir:= GetUserDir() + '/Images';
+  OpenDialog1.InitialDir:= GetUserDir() + 'Images';
   SaveDialog1.InitialDir:= OpenDialog1.InitialDir;
   If not DirectoryExists(OpenDialog1.InitialDir) Then
     mkdir(OpenDialog1.InitialDir);
@@ -329,6 +361,7 @@ begin
     [OpenDialog1.InitialDir, Year, Month, Day ]);
 
   Avanceurs := nil;
+  AppLog.Clear;
 end;
 
 
@@ -372,14 +405,14 @@ end;
 
 procedure TFormSDMultiCopier.BitBtnLancerLaCopieClick(Sender: TObject);
 var Source, Cibles, PrefixDbg : String;
-  i, idx, SourceLength, NbCibles : integer;
-  SourceFile : File;
+  i, idx, NbCibles : integer;
+  SourceLength : Int64;
 begin
   TimerProgression.Enabled := false;
   AddAppLog('Vérifications...');
   try
     // debug: utiliser /tmp/dev/sdX au lieu de /dev/sdX
-    if CheckBoxDbgCopy.Enabled Then
+    if CheckBoxDbgCopy.Checked Then
       PrefixDbg := '/tmp'
     else
       PrefixDbg := '';
@@ -448,15 +481,14 @@ begin
     SetLength(Avanceurs, 1 + NbCibles);
     AddAppLog(IntToStr(Length(Avanceurs)) + ' entitées de copie');
 
-    try
-      // La source a une taille de X en octets, servant aux calculs de progressions
-      AssignFile(SourceFile, PrefixDbg + Source);
-      Reset(SourceFile, 1);
-      SourceLength := FileSize(SourceFile); // FIXME risque d'échouer...
-      AddAppLog('La source fait '+IntToStr(SourceLength) + ' octets à dupliquer');
-    finally
-      CloseFile(SourceFile);
-    end;
+    // Extraction de la taille de la source = qtt d'octets à copier
+    SourceLength := getFileSize(PrefixDbg + Source);
+    if( SourceLength = 0) then
+      SourceLength := getDiskSize(PrefixDbg + Source);
+    if( SourceLength = 0) then
+      raise EInvalidOperation.Create('Impossible d''extraire la taille du fichier source : '+PrefixDbg + Source);
+    AddAppLog('La source fait '+IntToStr(SourceLength) + ' (' + IntToStr(SourceLength>>30) + ' Gio) octets à dupliquer');
+
 
     // tout sera synchronisé par l'objet sync
     sync := TPublisherSubscribersSynchronization.Create();
@@ -507,6 +539,8 @@ begin
     CopyInProgress:= TRUE; // Met à jour l'IHM
     Avanceurs[0].thrDuplicateur.Start;
 
+    AddAppLog('Début de la copie. Les barres de progression sont en kibioctets et kio/s.');
+
   except
     // En cas d'erreur, on tente de restaurer un état "configuration"
     On E: Exception Do
@@ -525,7 +559,7 @@ var i : integer;
 begin
   for i := 0 to High(Avanceurs) do
     Avanceurs[i].Abort;
-  TabSheetCopying.Caption := 'Capie annulée !';
+  TabSheetCopying.Caption := 'Copie annulée !';
 end;
 
 procedure TFormSDMultiCopier.SetCopyInProgress(NewValue: boolean);
@@ -543,8 +577,9 @@ begin
   If(CopyInProgress) Then
   begin
     PageControlMainForm.ActivePage := TabSheetCopying;
-    TabSheetCopying.Caption := 'Capie en cours...';
+    TabSheetCopying.Caption := 'Copie en cours...';
     TabSheetCopying.TabVisible:=True; // On le rend visible à la première copie
+    HeureDebutCopie := Now;
   end
   else
   begin

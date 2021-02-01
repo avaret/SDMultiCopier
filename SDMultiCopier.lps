@@ -3,13 +3,13 @@
   <ProjectSession>
     <Version Value="11"/>
     <BuildModes Active="Default"/>
-    <Units Count="62">
+    <Units Count="66">
       <Unit0>
         <Filename Value="SDMultiCopier.lpr"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="37" Y="12"/>
-        <UsageCount Value="65"/>
+        <UsageCount Value="69"/>
       </Unit0>
       <Unit1>
         <Filename Value="mainform.pas"/>
@@ -18,10 +18,11 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="MainForm"/>
-        <TopLine Value="132"/>
-        <CursorPos X="22" Y="151"/>
-        <FoldState Value=" TM Hnc21u"/>
-        <UsageCount Value="65"/>
+        <IsVisibleTab Value="True"/>
+        <TopLine Value="168"/>
+        <CursorPos X="87" Y="188"/>
+        <FoldState Value=" TM HoI21T"/>
+        <UsageCount Value="69"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
       </Unit1>
@@ -29,19 +30,19 @@
         <Filename Value="synchrosthreadsrw.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="SynchrosThreadsRW"/>
-        <EditorIndex Value="3"/>
-        <TopLine Value="55"/>
-        <CursorPos X="19" Y="134"/>
-        <UsageCount Value="65"/>
+        <EditorIndex Value="1"/>
+        <CursorPos X="53" Y="25"/>
+        <UsageCount Value="69"/>
         <Loaded Value="True"/>
       </Unit2>
       <Unit3>
         <Filename Value="detectremovdisk.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="detectRemovDisk"/>
-        <EditorIndex Value="4"/>
-        <CursorPos Y="17"/>
-        <UsageCount Value="45"/>
+        <EditorIndex Value="2"/>
+        <TopLine Value="65"/>
+        <CursorPos X="26" Y="90"/>
+        <UsageCount Value="49"/>
         <Loaded Value="True"/>
       </Unit3>
       <Unit4>
@@ -92,16 +93,16 @@
       <Unit10>
         <Filename Value="/usr/share/fpcsrc/3.0.4/rtl/inc/systemh.inc"/>
         <EditorIndex Value="-1"/>
-        <TopLine Value="1253"/>
-        <CursorPos X="11" Y="1293"/>
+        <TopLine Value="440"/>
+        <CursorPos X="3" Y="459"/>
         <UsageCount Value="10"/>
       </Unit10>
       <Unit11>
         <Filename Value="/usr/share/fpcsrc/3.0.4/rtl/objpas/sysutils/sysutilh.inc"/>
         <EditorIndex Value="-1"/>
-        <TopLine Value="212"/>
-        <CursorPos X="14" Y="235"/>
-        <UsageCount Value="9"/>
+        <TopLine Value="277"/>
+        <CursorPos X="4" Y="276"/>
+        <UsageCount Value="10"/>
       </Unit11>
       <Unit12>
         <Filename Value="/usr/share/fpcsrc/3.0.4/rtl/unix/tthread.inc"/>
@@ -151,26 +152,23 @@
       </Unit18>
       <Unit19>
         <Filename Value="/usr/lib/lazarus/2.0.6/lcl/include/progressbar.inc"/>
-        <IsVisibleTab Value="True"/>
-        <EditorIndex Value="2"/>
-        <TopLine Value="13"/>
+        <EditorIndex Value="-1"/>
         <CursorPos X="17" Y="48"/>
         <UsageCount Value="10"/>
-        <Loaded Value="True"/>
       </Unit19>
       <Unit20>
         <Filename Value="/usr/share/fpcsrc/3.0.4/rtl/inc/file.inc"/>
         <EditorIndex Value="-1"/>
-        <TopLine Value="249"/>
-        <CursorPos X="11" Y="306"/>
-        <UsageCount Value="9"/>
+        <TopLine Value="184"/>
+        <CursorPos X="3" Y="354"/>
+        <UsageCount Value="10"/>
       </Unit20>
       <Unit21>
         <Filename Value="/usr/share/fpcsrc/3.0.4/rtl/unix/sysfile.inc"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="113"/>
-        <CursorPos X="10" Y="134"/>
-        <UsageCount Value="8"/>
+        <CursorPos X="21" Y="134"/>
+        <UsageCount Value="10"/>
       </Unit21>
       <Unit22>
         <Filename Value="richmemopackage.pas"/>
@@ -202,8 +200,8 @@
         <Filename Value="/usr/lib/lazarus/2.0.6/lcl/extctrls.pp"/>
         <UnitName Value="ExtCtrls"/>
         <EditorIndex Value="-1"/>
-        <TopLine Value="1054"/>
-        <CursorPos X="5" Y="1074"/>
+        <TopLine Value="1053"/>
+        <CursorPos X="3" Y="1091"/>
         <UsageCount Value="10"/>
       </Unit26>
       <Unit27>
@@ -236,16 +234,15 @@
       <Unit31>
         <Filename Value="/usr/share/fpcsrc/3.0.4/rtl/objpas/sysutils/filutilh.inc"/>
         <EditorIndex Value="-1"/>
-        <TopLine Value="80"/>
-        <CursorPos X="10" Y="150"/>
-        <UsageCount Value="8"/>
+        <TopLine Value="26"/>
+        <CursorPos X="3" Y="47"/>
+        <UsageCount Value="10"/>
       </Unit31>
       <Unit32>
         <Filename Value="/usr/share/fpcsrc/3.0.4/rtl/objpas/sysutils/filutil.inc"/>
         <EditorIndex Value="-1"/>
-        <TopLine Value="413"/>
-        <CursorPos X="26" Y="448"/>
-        <UsageCount Value="7"/>
+        <CursorPos X="3"/>
+        <UsageCount Value="10"/>
       </Unit32>
       <Unit33>
         <Filename Value="/usr/lib/lazarus/2.0.6/components/lazutils/laztracer.pas"/>
@@ -288,16 +285,16 @@
         <Filename Value="/usr/lib/lazarus/2.0.6/lcl/dialogs.pp"/>
         <UnitName Value="Dialogs"/>
         <EditorIndex Value="-1"/>
-        <TopLine Value="678"/>
-        <CursorPos X="10" Y="699"/>
-        <UsageCount Value="9"/>
+        <TopLine Value="157"/>
+        <CursorPos X="14" Y="177"/>
+        <UsageCount Value="10"/>
       </Unit38>
       <Unit39>
         <Filename Value="/usr/share/fpcsrc/3.0.4/rtl/objpas/sysutils/datih.inc"/>
         <EditorIndex Value="-1"/>
-        <TopLine Value="94"/>
-        <CursorPos X="10" Y="115"/>
-        <UsageCount Value="9"/>
+        <TopLine Value="106"/>
+        <CursorPos X="10" Y="127"/>
+        <UsageCount Value="10"/>
       </Unit39>
       <Unit40>
         <Filename Value="/usr/share/fpcsrc/3.0.4/rtl/objpas/sysutils/sysinth.inc"/>
@@ -308,16 +305,16 @@
       <Unit41>
         <Filename Value="/usr/share/fpcsrc/3.0.4/rtl/objpas/sysutils/dati.inc"/>
         <EditorIndex Value="-1"/>
-        <TopLine Value="125"/>
-        <CursorPos X="65" Y="151"/>
-        <UsageCount Value="9"/>
+        <TopLine Value="241"/>
+        <CursorPos X="3" Y="260"/>
+        <UsageCount Value="10"/>
       </Unit41>
       <Unit42>
         <Filename Value="/usr/share/fpcsrc/3.0.4/rtl/objpas/sysutils/sysstrh.inc"/>
         <EditorIndex Value="-1"/>
-        <TopLine Value="108"/>
-        <CursorPos X="10" Y="129"/>
-        <UsageCount Value="8"/>
+        <TopLine Value="6"/>
+        <CursorPos X="31" Y="29"/>
+        <UsageCount Value="10"/>
       </Unit42>
       <Unit43>
         <Filename Value="/usr/share/fpcsrc/3.0.4/rtl/objpas/sysutils/sysstr.inc"/>
@@ -364,8 +361,8 @@
       <Unit49>
         <Filename Value="/usr/share/fpcsrc/3.0.4/rtl/linux/ossysc.inc"/>
         <EditorIndex Value="-1"/>
-        <TopLine Value="106"/>
-        <CursorPos X="10" Y="146"/>
+        <TopLine Value="48"/>
+        <CursorPos X="10" Y="84"/>
         <UsageCount Value="10"/>
       </Unit49>
       <Unit50>
@@ -448,132 +445,154 @@
       <Unit61>
         <Filename Value="/usr/lib/lazarus/2.0.6/lcl/comctrls.pp"/>
         <UnitName Value="ComCtrls"/>
-        <EditorIndex Value="1"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="1753"/>
         <CursorPos X="19" Y="1782"/>
         <UsageCount Value="10"/>
-        <Loaded Value="True"/>
       </Unit61>
+      <Unit62>
+        <Filename Value="/usr/share/fpcsrc/3.0.4/rtl/objpas/objpas.pp"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="226"/>
+        <CursorPos X="13" Y="237"/>
+        <UsageCount Value="10"/>
+      </Unit62>
+      <Unit63>
+        <Filename Value="/usr/share/fpcsrc/3.0.4/rtl/inc/text.inc"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="11" Y="46"/>
+        <UsageCount Value="10"/>
+      </Unit63>
+      <Unit64>
+        <Filename Value="/usr/share/fpcsrc/3.0.4/rtl/linux/sysos.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="123"/>
+        <CursorPos X="10" Y="139"/>
+        <UsageCount Value="10"/>
+      </Unit64>
+      <Unit65>
+        <Filename Value="/usr/share/fpcsrc/3.0.4/rtl/inc/filerec.inc"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="13" Y="36"/>
+        <UsageCount Value="10"/>
+      </Unit65>
     </Units>
-    <JumpHistory Count="30" HistoryIndex="29">
+    <JumpHistory Count="29" HistoryIndex="28">
       <Position1>
-        <Filename Value="/usr/lib/lazarus/2.0.6/lcl/include/progressbar.inc"/>
-        <Caret Line="46" Column="15" TopLine="13"/>
+        <Filename Value="mainform.pas"/>
+        <Caret Line="108" Column="20" TopLine="77"/>
       </Position1>
       <Position2>
-        <Filename Value="/usr/lib/lazarus/2.0.6/lcl/include/progressbar.inc"/>
+        <Filename Value="mainform.pas"/>
+        <Caret Line="232" Column="3" TopLine="226"/>
       </Position2>
       <Position3>
-        <Filename Value="/usr/lib/lazarus/2.0.6/lcl/include/progressbar.inc"/>
-        <Caret Line="21" Column="26"/>
+        <Filename Value="mainform.pas"/>
       </Position3>
       <Position4>
-        <Filename Value="/usr/lib/lazarus/2.0.6/lcl/include/progressbar.inc"/>
-        <Caret Line="23" Column="19"/>
+        <Filename Value="mainform.pas"/>
+        <Caret Line="516" Column="39" TopLine="483"/>
       </Position4>
       <Position5>
-        <Filename Value="/usr/lib/lazarus/2.0.6/lcl/comctrls.pp"/>
-        <Caret Line="1787" Column="15" TopLine="1767"/>
+        <Filename Value="mainform.pas"/>
+        <Caret Line="111" Column="31" TopLine="90"/>
       </Position5>
       <Position6>
-        <Filename Value="/usr/lib/lazarus/2.0.6/lcl/comctrls.pp"/>
-        <Caret Line="1770" Column="19" TopLine="1754"/>
+        <Filename Value="mainform.pas"/>
+        <Caret Line="100" Column="15" TopLine="90"/>
       </Position6>
       <Position7>
-        <Filename Value="/usr/lib/lazarus/2.0.6/lcl/include/progressbar.inc"/>
-        <Caret Line="21" Column="26"/>
+        <Filename Value="mainform.pas"/>
+        <Caret Line="557" Column="20" TopLine="536"/>
       </Position7>
       <Position8>
-        <Filename Value="/usr/lib/lazarus/2.0.6/lcl/include/progressbar.inc"/>
-        <Caret Line="23" Column="19"/>
+        <Filename Value="mainform.pas"/>
+        <Caret Line="232" Column="27" TopLine="215"/>
       </Position8>
       <Position9>
-        <Filename Value="/usr/lib/lazarus/2.0.6/lcl/include/progressbar.inc"/>
-        <Caret Line="48" Column="17" TopLine="13"/>
+        <Filename Value="mainform.pas"/>
+        <Caret Line="295" Column="28" TopLine="274"/>
       </Position9>
       <Position10>
-        <Filename Value="/usr/lib/lazarus/2.0.6/lcl/comctrls.pp"/>
-        <Caret Line="1770" Column="19" TopLine="1754"/>
+        <Filename Value="mainform.pas"/>
+        <Caret Line="295" Column="54" TopLine="274"/>
       </Position10>
       <Position11>
-        <Filename Value="/usr/lib/lazarus/2.0.6/lcl/comctrls.pp"/>
-        <Caret Line="4036" Column="43" TopLine="4023"/>
+        <Filename Value="mainform.pas"/>
+        <Caret Line="231" Column="16" TopLine="221"/>
       </Position11>
       <Position12>
-        <Filename Value="/usr/lib/lazarus/2.0.6/lcl/comctrls.pp"/>
+        <Filename Value="mainform.pas"/>
+        <Caret Line="296" Column="24" TopLine="266"/>
       </Position12>
       <Position13>
-        <Filename Value="/usr/lib/lazarus/2.0.6/lcl/comctrls.pp"/>
-        <Caret Line="1770" Column="19" TopLine="1735"/>
+        <Filename Value="mainform.pas"/>
+        <Caret Line="330" Column="20" TopLine="317"/>
       </Position13>
       <Position14>
-        <Filename Value="/usr/lib/lazarus/2.0.6/lcl/include/progressbar.inc"/>
-        <Caret Line="21" Column="26" TopLine="13"/>
+        <Filename Value="mainform.pas"/>
+        <Caret Line="85" Column="15" TopLine="65"/>
       </Position14>
       <Position15>
-        <Filename Value="/usr/lib/lazarus/2.0.6/lcl/include/progressbar.inc"/>
-        <Caret Line="23" Column="19" TopLine="13"/>
+        <Filename Value="mainform.pas"/>
+        <Caret Line="297" Column="44" TopLine="271"/>
       </Position15>
       <Position16>
-        <Filename Value="/usr/lib/lazarus/2.0.6/lcl/include/progressbar.inc"/>
-        <Caret Line="48" Column="17" TopLine="13"/>
+        <Filename Value="mainform.pas"/>
+        <Caret Line="296" Column="131" TopLine="275"/>
       </Position16>
       <Position17>
-        <Filename Value="/usr/lib/lazarus/2.0.6/lcl/comctrls.pp"/>
-        <Caret Line="1762" Column="3" TopLine="1747"/>
+        <Filename Value="mainform.pas"/>
+        <Caret Line="299" Column="53" TopLine="276"/>
       </Position17>
       <Position18>
-        <Filename Value="/usr/lib/lazarus/2.0.6/lcl/comctrls.pp"/>
-        <Caret Line="1770" Column="19" TopLine="1747"/>
+        <Filename Value="mainform.pas"/>
+        <Caret Line="298" Column="85" TopLine="276"/>
       </Position18>
       <Position19>
-        <Filename Value="/usr/lib/lazarus/2.0.6/lcl/comctrls.pp"/>
-        <Caret Line="1782" Column="19" TopLine="1762"/>
+        <Filename Value="mainform.pas"/>
+        <Caret Line="296" Column="45" TopLine="276"/>
       </Position19>
       <Position20>
-        <Filename Value="/usr/lib/lazarus/2.0.6/lcl/include/progressbar.inc"/>
-        <Caret Line="312" Column="3" TopLine="277"/>
+        <Filename Value="mainform.pas"/>
+        <Caret Line="232" Column="33" TopLine="222"/>
       </Position20>
       <Position21>
-        <Filename Value="/usr/lib/lazarus/2.0.6/lcl/include/progressbar.inc"/>
-        <Caret Line="21" Column="26"/>
+        <Filename Value="mainform.pas"/>
+        <Caret Line="297" Column="54" TopLine="276"/>
       </Position21>
       <Position22>
-        <Filename Value="/usr/lib/lazarus/2.0.6/lcl/include/progressbar.inc"/>
-        <Caret Line="23" Column="19"/>
+        <Filename Value="mainform.pas"/>
+        <Caret Line="296" Column="33" TopLine="276"/>
       </Position22>
       <Position23>
-        <Filename Value="/usr/lib/lazarus/2.0.6/lcl/include/progressbar.inc"/>
-        <Caret Line="48" Column="17" TopLine="13"/>
+        <Filename Value="mainform.pas"/>
+        <Caret Line="233" Column="3" TopLine="212"/>
       </Position23>
       <Position24>
-        <Filename Value="/usr/lib/lazarus/2.0.6/lcl/include/progressbar.inc"/>
-        <Caret Line="21" Column="26" TopLine="13"/>
+        <Filename Value="mainform.pas"/>
+        <Caret Line="297" Column="54" TopLine="276"/>
       </Position24>
       <Position25>
-        <Filename Value="/usr/lib/lazarus/2.0.6/lcl/include/progressbar.inc"/>
-        <Caret Line="23" Column="19" TopLine="13"/>
+        <Filename Value="mainform.pas"/>
+        <Caret Line="296" Column="35" TopLine="276"/>
       </Position25>
       <Position26>
-        <Filename Value="/usr/lib/lazarus/2.0.6/lcl/include/progressbar.inc"/>
-        <Caret Line="48" Column="17" TopLine="13"/>
+        <Filename Value="mainform.pas"/>
+        <Caret Line="232" Column="34" TopLine="212"/>
       </Position26>
       <Position27>
-        <Filename Value="/usr/lib/lazarus/2.0.6/lcl/comctrls.pp"/>
-        <Caret Line="1782" Column="19" TopLine="1762"/>
+        <Filename Value="mainform.pas"/>
+        <Caret Line="297" Column="50" TopLine="276"/>
       </Position27>
       <Position28>
-        <Filename Value="/usr/lib/lazarus/2.0.6/lcl/include/progressbar.inc"/>
-        <Caret Line="312" Column="3" TopLine="277"/>
+        <Filename Value="mainform.pas"/>
+        <Caret Line="241" Column="47" TopLine="227"/>
       </Position28>
       <Position29>
-        <Filename Value="/usr/lib/lazarus/2.0.6/lcl/include/progressbar.inc"/>
-        <Caret Line="21" Column="26" TopLine="7"/>
+        <Filename Value="mainform.pas"/>
+        <Caret Line="32" Column="63" TopLine="11"/>
       </Position29>
-      <Position30>
-        <Filename Value="/usr/lib/lazarus/2.0.6/lcl/include/progressbar.inc"/>
-        <Caret Line="23" Column="19" TopLine="7"/>
-      </Position30>
     </JumpHistory>
     <RunParams>
       <FormatVersion Value="2"/>

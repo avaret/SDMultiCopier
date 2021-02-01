@@ -15,6 +15,9 @@ var
 
 procedure identifierDisquesAmovibles;
 
+function getFileSize(FileName : String) : Int64; // Extrait la taille (en octets) d'un fichier (sans l'ouvrir). Retourne 0 si erreur
+function getDiskSize(device : String) : Int64; // Extrait la taille (en octets) d'un périphérique
+
 implementation
 
 
@@ -65,6 +68,39 @@ begin
     FindClose(disks);
   end;
 
+end;
+
+function getFileSize(FileName : String) : Int64; // Extrait la taille (en octets) d'un fichier (sans l'ouvrir). Retourne 0 si erreur
+var thisfileRec : TUnicodeSearchRec;
+begin
+  Result := 0;
+  if(FindFirst(FileName + '', faAnyFile, thisfileRec) = 0) Then
+  Begin
+    Result := thisfileRec.Size;
+    FindClose(thisfileRec);
+  end;
+  writeln(' getFileSize ', FileName, ' -> ', Result);
+end;
+
+function getDiskSize(device : String) : Int64; // Extrait la taille (en octets) d'un périphérique
+var sizeFilename : string;
+  currentSize : TextFile;
+begin
+  // device = '/dev/sde' => pas de taille extractible, FileSize retourne 0
+  //  du coup, on remplace le "dev" par "sys/block"
+  //  et on lit le fichier '/sys/block/sde/size, qui contient la taille par blocs de 512 octets
+
+  Result := 0; //En cas d'erreur grave
+
+  sizeFilename := StringReplace(device + '/size', 'dev', 'sys/block', []);
+  AssignFile(currentSize, sizeFilename);
+  Reset(currentSize);
+  Readln(currentSize, Result);
+  CloseFile(currentSize);
+
+  Result := Result << 9; // Le pseudo-fichier contient le nombre de (blocs de 512 octets) => conversion en octets
+
+  writeln(' getDiskSize ', device, ' -> ', Result);
 end;
 
 end.

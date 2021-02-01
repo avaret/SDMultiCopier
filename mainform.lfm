@@ -1,11 +1,12 @@
 object FormSDMultiCopier: TFormSDMultiCopier
-  Left = 437
+  Left = 442
   Height = 1016
-  Top = 162
+  Top = 59
   Width = 749
   Caption = 'SD Multi-Copieur (@Antoine Varet)'
   ClientHeight = 1016
   ClientWidth = 749
+  OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
   LCLVersion = '2.0.6.0'
   object AppLog: TRichMemo
@@ -6522,8 +6523,6 @@ object FormSDMultiCopier: TFormSDMultiCopier
         Width = 203
         Anchors = [akLeft, akRight, akBottom]
         Caption = 'Préfixer de /tmp les disques'
-        Checked = True
-        State = cbChecked
         TabOrder = 5
       end
     end

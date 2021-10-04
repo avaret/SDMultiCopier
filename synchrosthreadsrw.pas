@@ -14,12 +14,13 @@ uses
   Classes, SysUtils, SyncObjs;
 
 const
-//  BUFF_BLOCKSIZE  = 1;    // Doit être un octet, car BlockRead|Write ne copie que des blocs entiers
-//  BUFF_BLOCKCOUNT = 1<<16; // Nombre d'octets par itération de copie
+  BUFF_BLOCKSIZE  = 1;     // Doit être un octet, car BlockRead|Write ne copie que des blocs entiers
+  BUFF_BLOCKCOUNT = 1<<22; // Nombre d'octets par itération de copie
 
-  BUFF_BLOCKSIZE  = 1<<9; // BlockRec / sizeof( 1 record )
-//  BUFF_BLOCKCOUNT = 1<<7; // 64 Ko
-  BUFF_BLOCKCOUNT = 1<<(7+5); // 2 Mio
+//  BUFF_BLOCKSIZE  = 1<<9; // BlockRec / sizeof( 1 record )
+//  BUFF_BLOCKCOUNT = 1<<(7+5); // 2 Mio
+  //  BUFF_BLOCKCOUNT = 1<<7; // 64 Ko
+
 
   BUFF_LENGTH = BUFF_BLOCKCOUNT * BUFF_BLOCKSIZE; // Taille du buffer = octets/itération
   BUFF_COUNT = 16; // Nombre de buffers à utiliser en parallèle pour laisser le temps aux plus lents d'écrire

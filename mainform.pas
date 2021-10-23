@@ -6,15 +6,18 @@ unit MainForm;
 Le sam. 2 oct. 2021 à 13:27, Antoine Varet <avaret@gmail.com> a écrit :
 
       ** Idée d'amélioration du SD multi copieur **
-    avoir une scrollbars sur la page copie en cours
-    bouton abord général mieux placé
+    chercher à comprendre pourquoi on ne peut pas avoir plus de 16 clés simultanément
+
+
+    FAIT :
+     §§faire un umount au début
+     §§Avoir le dmesg-w coloré dans un autre onglet ? Pour voir les clefs pourries...
      §§avoir une scrollbar dans le log
      §§indiquer qu'on fait un umount et un sync
      §§dans la barre de titre mettre mon nom plus les paramètres de compilation tels que la taille du buffer
-    chercher à comprendre pourquoi on ne peut pas avoir plus de 16 clés simultanément
-     §§faire un umount au début
-     §§Avoir le dmesg-w coloré dans un autre onglet ? Pour voir les clefs pourries...
-    Case shutdown qd copie terminée +10 min
+     §§avoir une scrollbars sur la page copie en cours
+     §§bouton abord général mieux placé
+     §§Case shutdown qd copie terminée +10 min
 
     *)
 
@@ -41,7 +44,7 @@ type
 
     procedure BtnAbandonnerClick(Sender: TObject);
     constructor Create(TheOwner: TComponent); override;
-    constructor Create(TheOwnerPanel: TPanel; TheOwnerForm: TForm; cCaption : String; avcMax : Int64; thrDup : TAPublisherOrASubscriber);
+    constructor Create(TheOwnerPanel: TComponent; TheOwnerForm: TForm; cCaption : String; avcMax : Int64; thrDup : TAPublisherOrASubscriber);
   public
     thrDuplicateur : TAPublisherOrASubscriber;
 
@@ -68,6 +71,7 @@ type
     BitBtnArreterLaCopie: TBitBtn;
     BitBtnLancerLaCopie: TBitBtn;
     CheckBoxDbgCopy: TCheckBox;
+    CheckBoxPoweroff: TCheckBox;
     DiskTargets: TCheckListBox;
     ImageAppliIcon: TImage;
     ImageListProgression: TImageList;
@@ -84,13 +88,14 @@ type
     MemoImgNotes: TMemo;
     OpenDialog1: TOpenDialog;
     PageControlMainForm: TPageControl;
-    PanelAvanceurs: TPanel;
+    PanelAvanceursOLD: TPanel;
     ProcessEject: TProcess;
     ProcessDmesg_w: TProcess;
     ProcessUmount: TProcess;
     ProcessPoweroff: TProcess;
     ProcessSync: TProcess;
     SaveDialog1: TSaveDialog;
+    PanelAvanceurs: TScrollBox;
     SpeedButton1: TSpeedButton;
     SpeedButton2: TSpeedButton;
     SpeedButton3: TSpeedButton;
@@ -100,9 +105,11 @@ type
     AppLog: TRichMemo;
     TimerSauverNotesPerso: TTimer;
     TimerProgression: TTimer;
+    TimerPoweroff: TTimer;
     TimerTrouverDisques: TTimer;
     procedure BitBtnArreterLaCopieClick(Sender: TObject);
     procedure BitBtnLancerLaCopieClick(Sender: TObject);
+    procedure CheckBoxPoweroffChange(Sender: TObject);
     procedure DiskSourceSelect(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: boolean);
     procedure FormCreate(Sender: TObject);
@@ -110,6 +117,7 @@ type
     procedure ImgSaveFileClick(Sender: TObject);
     procedure MemoImgNotesChange(Sender: TObject);
     procedure SpeedButton1Click(Sender: TObject);
+    procedure TimerPoweroffTimer(Sender: TObject);
     procedure TimerProgressionTimer(Sender: TObject);
     procedure ChangerRapidite(newValue : integer);
     procedure TimerSauverNotesPersoTimer(Sender: TObject);
@@ -150,11 +158,11 @@ begin
   raise EInvalidOp.Create('Il ne faut pas appeler ce constructeur mais le suivant.');
 end;
 
-constructor TAvanceur.Create(TheOwnerPanel: TPanel; TheOwnerForm: TForm; cCaption : String; avcMax : Int64; thrDup : TAPublisherOrASubscriber);
+constructor TAvanceur.Create(TheOwnerPanel: TComponent; TheOwnerForm: TForm; cCaption : String; avcMax : Int64; thrDup : TAPublisherOrASubscriber);
 const progressBarWidth = 300;
 begin
   inherited Create(TheOwnerPanel);
-  Parent := TheOwnerPanel;
+  Parent := TheOwnerPanel as TScrollBox;
   ownerForm := TheOwnerForm;
 
   Align := alTop;
@@ -289,6 +297,13 @@ begin
       AddAppLog('Éjection des disques terminés. Opération de duplication terminée.');
     end;
 
+    // Lancer la tempo d'arrêt du poste
+    if CheckBoxPoweroff.Checked Then
+    begin
+      AddAppLog('Dans 10 minutes, le PC s''arrêtera. Fermer l''application ou décocher la case annule cet arrêt.');
+      TimerPoweroff.Enabled:=True;
+    end;
+
     // La copie est terminée ou elle a été abandonnée
     // On remet l'affichage à l'état avant la copie+désactive le CopyInProgress
     SetModeAppli(Modeappli);
@@ -356,6 +371,8 @@ begin
   if CopyInProgress then
     BitBtnArreterLaCopieClick(Sender);
 
+  ProcessDmesg_w.Active := false;
+
   CanClose := True;
 end;
 
@@ -391,16 +408,12 @@ begin
 
   ProcessDmesg_w.Active := True; // Lancer en arrière-plan une console avec dmesg -w
 
-
   // Tests scrollbar dans l'onglet CopieEnCours
-  If CheckBoxDbgCopy.Visible Then
+  If false and CheckBoxDbgCopy.Visible Then
   begin
-    ProcessDmesg_w.Active:=False;
+    //ProcessDmesg_w.Active:=False;
     TabSheetCopying.TabVisible:= true;
-    //TabSheetCopying.EnableAutoSizing;
-    PanelAvanceurs.AutoSizePhases*;:=True;
     PageControlMainForm.TabIndex:=1;
-    TScrollBox;
     for i := 1 to 30 do
       TAvanceur.Create(
           PanelAvanceurs,
@@ -409,6 +422,7 @@ begin
           200,
           nil
         );
+    PanelAvanceurs.UpdateScrollbars;
   end;
 
 end;
@@ -615,6 +629,13 @@ begin
   end;
 end;
 
+procedure TFormSDMultiCopier.CheckBoxPoweroffChange(Sender: TObject);
+begin
+  // Décocher la case annule un éventuel arrêt programmé.
+  If not CheckBoxPoweroff.Checked Then
+    TimerPoweroff.Enabled:=False;
+end;
+
 procedure TFormSDMultiCopier.BitBtnArreterLaCopieClick(Sender: TObject);
 var i : integer;
 begin
@@ -693,6 +714,12 @@ begin
 
 end;
 
+procedure TFormSDMultiCopier.TimerPoweroffTimer(Sender: TObject);
+begin
+  AddAppLog('Extinction du programme.');
+  ProcessPoweroff.Execute;
+end;
+
 procedure TFormSDMultiCopier.ChangerRapidite(newValue : integer);
 var i : integer;
 begin
@@ -745,7 +772,7 @@ end;
 
 procedure TFormSDMultiCopier.AddAppLog(Msg : String);
 var //A : Integer;
-  Sab, Sbc : String;
+  Sab, Sbc, Srtf : String;
 Begin
   // Ajouter le texte
   //A := AppLog.GetTextLen;
@@ -753,6 +780,10 @@ Begin
   //B := A + Sab.Length;
   Sbc := Msg;
   AppLog.Append(Sab + Sbc);
+
+  //Srtf := Format('{\bold [%s]} %s', [TimeToStr(Time), Msg]);
+  //Srtf := Format('\b1[%s]\b0   %s\par', [TimeToStr(Time), Msg]);
+  //AppLog.Rtf:= AppLog.Rtf+Srtf; // - on perd les accents...
 
   // Colorer
   //AppLog.SetRangeColor(A, Sab.Length, clBlue);  //TODO à débuguer... ou passer sur du html !

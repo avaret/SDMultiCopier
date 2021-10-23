@@ -1,19 +1,19 @@
 object FormSDMultiCopier: TFormSDMultiCopier
-  Left = 442
-  Height = 850
+  Left = 302
+  Height = 915
   Top = 25
-  Width = 749
+  Width = 926
   Caption = 'SD Multi-Copieur (@Antoine Varet)'
-  ClientHeight = 850
-  ClientWidth = 749
+  ClientHeight = 915
+  ClientWidth = 926
   OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
   LCLVersion = '2.0.6.0'
   object AppLog: TRichMemo
     Left = 0
-    Height = 283
-    Top = 567
-    Width = 749
+    Height = 175
+    Top = 740
+    Width = 926
     Align = alBottom
     HideSelection = False
     Lines.Strings = (
@@ -26,27 +26,27 @@ object FormSDMultiCopier: TFormSDMultiCopier
   end
   object PageControlMainForm: TPageControl
     Left = 0
-    Height = 562
+    Height = 735
     Top = 0
-    Width = 749
-    ActivePage = TabSheetCopying
+    Width = 926
+    ActivePage = TabSheetconf
     Align = alClient
     Images = ImageListProgression
-    TabIndex = 1
+    TabIndex = 0
     TabOrder = 1
     object TabSheetconf: TTabSheet
       Caption = 'Configuration'
-      ClientHeight = 527
-      ClientWidth = 743
+      ClientHeight = 700
+      ClientWidth = 920
       object GroupBoxMode: TGroupBox
         Left = 0
         Height = 208
         Top = 0
-        Width = 743
+        Width = 920
         Align = alTop
         Caption = 'Mode de fonctionnement'
         ClientHeight = 189
-        ClientWidth = 739
+        ClientWidth = 916
         TabOrder = 0
         object SpeedButton1: TSpeedButton
           Tag = 1
@@ -2117,7 +2117,7 @@ object FormSDMultiCopier: TFormSDMultiCopier
           Left = 272
           Height = 168
           Top = 8
-          Width = 215
+          Width = 392
           AllowAllUp = True
           Anchors = [akTop, akLeft, akRight]
           Caption = '(&2) Capture d''une image'
@@ -4179,7 +4179,7 @@ object FormSDMultiCopier: TFormSDMultiCopier
         end
         object SpeedButton3: TSpeedButton
           Tag = 3
-          Left = 520
+          Left = 697
           Height = 168
           Top = 8
           Width = 216
@@ -6247,14 +6247,14 @@ object FormSDMultiCopier: TFormSDMultiCopier
         Left = 0
         Height = 169
         Top = 272
-        Width = 743
+        Width = 920
         Align = alTop
         Caption = '&Image locale'
         ClientHeight = 150
-        ClientWidth = 739
+        ClientWidth = 916
         TabOrder = 1
         object ImgSaveFile: TBitBtn
-          Left = 480
+          Left = 657
           Height = 30
           Top = 0
           Width = 256
@@ -6343,7 +6343,7 @@ object FormSDMultiCopier: TFormSDMultiCopier
           Left = 7
           Height = 26
           Top = 32
-          Width = 729
+          Width = 906
           Anchors = [akTop, akLeft, akRight]
           TabOrder = 0
           Text = 'ImgFilename'
@@ -6352,7 +6352,7 @@ object FormSDMultiCopier: TFormSDMultiCopier
           Left = 0
           Height = 90
           Top = 60
-          Width = 739
+          Width = 916
           Align = alBottom
           Lines.Strings = (
             '(Notes personnelles)'
@@ -6369,7 +6369,7 @@ object FormSDMultiCopier: TFormSDMultiCopier
           ParentColor = False
         end
         object ImgLoadFile: TBitBtn
-          Left = 568
+          Left = 745
           Height = 30
           Top = 0
           Width = 168
@@ -6459,17 +6459,17 @@ object FormSDMultiCopier: TFormSDMultiCopier
         Left = 0
         Height = 223
         Top = 441
-        Width = 743
+        Width = 920
         Align = alTop
         Caption = 'Les disques &cibles'
         ClientHeight = 204
-        ClientWidth = 739
+        ClientWidth = 916
         TabOrder = 2
         object DiskTargets: TCheckListBox
           Left = 0
           Height = 204
           Top = 0
-          Width = 739
+          Width = 916
           Align = alClient
           ItemHeight = 0
           TabOrder = 0
@@ -6480,11 +6480,11 @@ object FormSDMultiCopier: TFormSDMultiCopier
         Left = 0
         Height = 64
         Top = 208
-        Width = 743
+        Width = 920
         Align = alTop
         Caption = 'Disque &source'
         ClientHeight = 45
-        ClientWidth = 739
+        ClientWidth = 916
         TabOrder = 3
         object DiskSource: TComboBox
           Left = 328
@@ -6506,10 +6506,10 @@ object FormSDMultiCopier: TFormSDMultiCopier
         end
       end
       object BitBtnLancerLaCopie: TBitBtn
-        Left = 208
+        Left = 304
         Height = 30
-        Top = 497
-        Width = 308
+        Top = 670
+        Width = 336
         Anchors = [akLeft, akRight, akBottom]
         Caption = '&Lancer la copie'
         Kind = bkAll
@@ -6518,48 +6518,62 @@ object FormSDMultiCopier: TFormSDMultiCopier
         TabOrder = 4
       end
       object CheckBoxDbgCopy: TCheckBox
-        Left = 527
+        Left = 719
         Height = 21
-        Top = 501
-        Width = 203
+        Top = 674
+        Width = 188
         Anchors = [akLeft, akRight, akBottom]
         Caption = 'Préfixer de /tmp les disques'
         Checked = True
         State = cbChecked
         TabOrder = 5
       end
+      object CheckBoxPoweroff: TCheckBox
+        Left = 8
+        Height = 21
+        Top = 674
+        Width = 380
+        Anchors = [akLeft, akRight, akBottom]
+        Caption = 'Arrêter le PC 10 minutes après la copie'
+        OnChange = CheckBoxPoweroffChange
+        TabOrder = 6
+      end
     end
     object TabSheetCopying: TTabSheet
       Caption = 'Copie en cours...'
-      ClientHeight = 527
-      ClientWidth = 743
+      ClientHeight = 700
+      ClientWidth = 920
       TabVisible = False
-      object PanelAvanceurs: TPanel
+      object PanelAvanceursOLD: TPanel
         Left = 0
-        Height = 527
+        Height = 700
         Top = 0
-        Width = 743
+        Width = 920
         Align = alClient
-        ClientHeight = 527
-        ClientWidth = 743
         TabOrder = 0
+      end
+      object PanelAvanceurs: TScrollBox
+        Left = 0
+        Height = 700
+        Top = 0
+        Width = 920
+        HorzScrollBar.Page = 471
+        VertScrollBar.Page = 22
+        Align = alClient
+        ClientHeight = 698
+        ClientWidth = 918
+        ParentBackground = True
+        TabOrder = 1
         object BitBtnArreterLaCopie: TBitBtn
-          Left = 104
+          Left = 288
           Height = 30
-          Top = 364
+          Top = -8
           Width = 183
           DefaultCaption = True
           Enabled = False
           Kind = bkAbort
           OnClick = BitBtnArreterLaCopieClick
           TabOrder = 0
-        end
-        object ImageAppliIcon: TImage
-          Left = 265
-          Height = 48
-          Top = 1
-          Width = 48
-          Visible = False
         end
       end
     end
@@ -6568,11 +6582,18 @@ object FormSDMultiCopier: TFormSDMultiCopier
     Cursor = crVSplit
     Left = 0
     Height = 5
-    Top = 562
-    Width = 749
+    Top = 735
+    Width = 926
     Align = alBottom
     Beveled = True
     ResizeAnchor = akBottom
+  end
+  object ImageAppliIcon: TImage
+    Left = 265
+    Height = 48
+    Top = 1
+    Width = 48
+    Visible = False
   end
   object TimerProgression: TTimer
     Enabled = False
@@ -17458,5 +17479,12 @@ object FormSDMultiCopier: TFormSDMultiCopier
     FillAttribute = 0
     left = 496
     top = 368
+  end
+  object TimerPoweroff: TTimer
+    Enabled = False
+    Interval = 600000
+    OnTimer = TimerPoweroffTimer
+    left = 632
+    top = 304
   end
 end

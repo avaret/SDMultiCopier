@@ -2,11 +2,27 @@ unit MainForm;
 
 {$mode objfpc}{$H+}
 
+(* TODOLIST
+Le sam. 2 oct. 2021 à 13:27, Antoine Varet <avaret@gmail.com> a écrit :
+
+      ** Idée d'amélioration du SD multi copieur **
+    avoir une scrollbars sur la page copie en cours
+    bouton abord général mieux placé
+     §§avoir une scrollbar dans le log
+     §§indiquer qu'on fait un umount et un sync
+     §§dans la barre de titre mettre mon nom plus les paramètres de compilation tels que la taille du buffer
+    chercher à comprendre pourquoi on ne peut pas avoir plus de 16 clés simultanément
+     §§faire un umount au début
+     §§Avoir le dmesg-w coloré dans un autre onglet ? Pour voir les clefs pourries...
+    Case shutdown qd copie terminée +10 min
+
+    *)
+
 interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls,
-  ExtCtrls, CheckLst, Buttons, RichMemo, SynEdit, Process,
+  ExtCtrls, CheckLst, Buttons, SynEdit, Process, RichMemo,
   SynchrosThreadsRW, detectRemovDisk;
 
 
@@ -70,6 +86,9 @@ type
     PageControlMainForm: TPageControl;
     PanelAvanceurs: TPanel;
     ProcessEject: TProcess;
+    ProcessDmesg_w: TProcess;
+    ProcessUmount: TProcess;
+    ProcessPoweroff: TProcess;
     ProcessSync: TProcess;
     SaveDialog1: TSaveDialog;
     SpeedButton1: TSpeedButton;
@@ -100,6 +119,8 @@ type
     FCopyInProgress : boolean;
     procedure SetCopyInProgress(NewValue : boolean); // Met à jour l'ihm en conséquence
     procedure SetModeAppli(NewValue : TModeAppli); // Met à jour l'ihm en conséquence
+
+    procedure StartThenWaitforProcessTermination(P : TProcess);
 
   public
     sync : TPublisherSubscribersSynchronization;
@@ -216,14 +237,16 @@ end;
 
 { TFormSDMultiCopier }
 
-procedure StartThenWaitforProcessTermination(P : TProcess);
+procedure TFormSDMultiCopier.StartThenWaitforProcessTermination(P : TProcess);
 begin
+  AddAppLog(' >> running '+P.Executable + ' ' + P.Parameters.Text + ' ...');
   P.Active:=True;
   while P.Running do
     begin
       Application.ProcessMessages;
       sleep(250);
     end;
+  AddAppLog(' >> ...done.');
 end;
 
 procedure TFormSDMultiCopier.TimerProgressionTimer(Sender: TObject);
@@ -343,7 +366,7 @@ Begin
 end;
 
 procedure TFormSDMultiCopier.FormCreate(Sender: TObject);
-var Year, Month, Day : word;
+var Year, Month, Day, i : word;
 begin
   CheckBoxDbgCopy.Visible:= CheckBoxDbgCopy.Checked;
   if (not IsRoot) and (not CheckBoxDbgCopy.Checked) then
@@ -361,7 +384,33 @@ begin
     [OpenDialog1.InitialDir, Year, Month, Day ]);
 
   Avanceurs := nil;
+
   AppLog.Clear;
+  AddAppLog(Format('Démarrage de SDMultiCopier - Buffers = %d/%d/%d/%d - Antoine VARET (c) 2021',
+    [BUFF_BLOCKSIZE, BUFF_BLOCKCOUNT, BUFF_LENGTH, BUFF_COUNT] ));
+
+  ProcessDmesg_w.Active := True; // Lancer en arrière-plan une console avec dmesg -w
+
+
+  // Tests scrollbar dans l'onglet CopieEnCours
+  If CheckBoxDbgCopy.Visible Then
+  begin
+    ProcessDmesg_w.Active:=False;
+    TabSheetCopying.TabVisible:= true;
+    //TabSheetCopying.EnableAutoSizing;
+    PanelAvanceurs.AutoSizePhases*;:=True;
+    PageControlMainForm.TabIndex:=1;
+    TScrollBox;
+    for i := 1 to 30 do
+      TAvanceur.Create(
+          PanelAvanceurs,
+          Self,
+          'Cible: ' + IntToStr(i),
+          200,
+          nil
+        );
+  end;
+
 end;
 
 
@@ -469,8 +518,20 @@ begin
 
     end;
 
+    // Démontage des clefs au cas où elles auraient été montées...
+    AddAppLog('Vérifications terminées, démontage des médias...');
+
+    ProcessUmount.Parameters.Clear;
+    if Modeappli <> maImg2Disk then // Source = un disque à démonter
+      ProcessUmount.Parameters.Add(Source);
+    if Modeappli <> maDisk2Img then // Cible = des disques à démonter
+      for idx := 0 to DiskTargets.Items.Count - 1 do
+        if DiskTargets.Checked[idx] Then
+          ProcessUmount.Parameters.Add( DiskTargets.Items[idx] );
+    StartThenWaitforProcessTermination(ProcessUmount);
+
     // Démarrage de la copie
-    AddAppLog('Vérifications terminées, démarrage de la copie...');
+    AddAppLog('Médias démontés, démarrage de la copie...');
 
     // S'il y a déjà eu une copie, on nettoie...
     if Avanceurs <> nil then

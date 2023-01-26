@@ -1,9 +1,9 @@
 unit SynchrosThreadsRW;
 
 { TODO:
- - Nettoyer un peu le code,
- - Mon algo prod/conso ne fonctionne pas => remplace par pub/subscr
- - des blocs de 1 octet ? de 4 Ko ? ...
+ V Nettoyer un peu le code,
+ V Mon algo prod/conso ne fonctionne pas => remplace par pub/subscr
+ V des blocs de 1 octet ? de 4 Ko ? ...
  }
 
 {$mode objfpc}{$H+}
@@ -11,7 +11,7 @@ unit SynchrosThreadsRW;
 interface
 
 uses
-  Classes, SysUtils, SyncObjs;
+  Classes, SysUtils, SyncObjs, Semaphore;
 
 const
   BUFF_BLOCKSIZE  = 1;     // Doit être un octet, car BlockRead|Write ne copie que des blocs entiers
@@ -27,7 +27,8 @@ const
 
 
 
-  { Classe utilisée pour synchroniser les threads }
+(*
+{ Classe utilisée pour synchroniser les threads }
 type TSemaphore = class
     sem : Pointer;
     sem_id : integer; // interne
@@ -38,6 +39,7 @@ type TSemaphore = class
     procedure Post(Tokens : integer = 1);
     procedure Wait(Tokens : integer = 1);
   end;
+  *)
 
   { Structure de donnée servant à protéger les échanges entre tâches }
 type TSyncDataItem = record
@@ -76,7 +78,7 @@ type TPublisherSubscribersSynchronization = class
     function RegisterSubscriber : Integer; { Chaque subscriber doit s'enregistrer en appelant cette fonction qui retourne un id unique }
 
   public
-    { Les fonctions suivantes servent à la synchronisation (et à éviter les effets de bord:
+    { Les fonctions suivantes servent à la synchronisation (et à éviter les effets de bord) :
        - *Publishtion->le Publishteur, *Subscribption->chaque consommateur.
        - no_item: une variable LOCALE au thread, doit être initialisée par le thread lui-même à 0. Pour index dans dataItems.
        - id_subscr: l'identifiant unique retourné par RegisterSubscriber, sert comme index dans syncData.
@@ -240,8 +242,8 @@ Begin
   SetLength(syncData, Result+1);
   With syncData[Result] do
   begin
-    TokensToWrite := TSemaphore.Create(0);
-    TokensWritten := TSemaphore.Create(1);
+    TokensToWrite := TSemaphore.Create(0, BUFF_COUNT);
+    TokensWritten := TSemaphore.Create(1, BUFF_COUNT);
   end;
   protectRegistration.Release;
 end;
@@ -267,6 +269,7 @@ procedure TPublisherSubscribersSynchronization.BeginPublishPushAnItem(var no_ite
 var id_subscr : integer;
 begin
   //writeln('TPublisherSubscribersSynchronization.BeginPublishPushAnItem(', no_item, ')');
+  if no_item = -1 then ;  // unused
 
   // Pour chaque souscripteur, P(1)
   for id_subscr := 0 to High(syncData) do
@@ -289,6 +292,7 @@ end;
 procedure TPublisherSubscribersSynchronization.BeginSubscribTakeAnItem(id_subscr : Integer; var no_item : integer);
 begin
   //writeln('TPublisherSubscribersSynchronization.BeginSubscribTakeAnItem(', no_item, ')');
+  if no_item = -1 then ;  // unused
 
   // P(1)
   syncData[id_subscr].TokensToWrite.Wait;
@@ -306,7 +310,7 @@ begin
 end;
 
 
-
+(*
 constructor TSemaphore.Create(Tokens : integer = 1);
 begin
   sem := SemaphoreInit;
@@ -346,7 +350,7 @@ begin
   sem_tokens := sem_tokens - Tokens;
   //writeln(' Thread ', GetCurrentThreadId, ' sem_id ', sem_id, ' waited tokens : new val = ', sem_tokens, ' tokens');
 end;
-
+*)
 
 end.
 

@@ -17,6 +17,7 @@ procedure identifierDisquesAmovibles;
 
 function getFileSize(FileName : String) : Int64; // Extrait la taille (en octets) d'un fichier (sans l'ouvrir). Retourne 0 si erreur
 function getDiskSize(device : String) : Int64; // Extrait la taille (en octets) d'un périphérique
+function isDiskReadOnly(device : String) : boolean; // Retourne si le périphérique est en lecture seule
 
 implementation
 
@@ -101,6 +102,24 @@ begin
   Result := Result << 9; // Le pseudo-fichier contient le nombre de (blocs de 512 octets) => conversion en octets
 
   writeln(' getDiskSize ', device, ' -> ', Result);
+end;
+
+function isDiskReadOnly(device : String) : boolean;
+var roFilename : string;
+  roFile : TextFile;
+  roValue : Int64;
+begin
+  // on remplace le "dev" par "sys/block"
+  //  et on lit le fichier '/sys/block/sde/ro, qui contient 0 (RW) ou 1 (RO)
+  roFilename := StringReplace(device + '/ro', 'dev', 'sys/block', []);
+  AssignFile(roFile, roFilename);
+  Reset(roFile);
+  Readln(roFile, roValue);
+  CloseFile(roFile);
+
+  Result := (roValue <> 0);
+
+  writeln(' isDiskReadOnly ', device, ' -> ', Result);
 end;
 
 end.

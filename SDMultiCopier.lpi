@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
   <ProjectOptions>
-    <Version Value="11"/>
+    <Version Value="12"/>
     <General>
+      <Flags>
+        <CompatibilityMode Value="True"/>
+      </Flags>
       <SessionStorage Value="InProjectDir"/>
-      <MainUnit Value="0"/>
       <Title Value="SDMultiCopier"/>
       <Scaled Value="True"/>
       <ResourceType Value="res"/>
@@ -26,12 +28,12 @@
         <Mode0 Name="default"/>
       </Modes>
     </RunParams>
-    <RequiredPackages Count="5">
+    <RequiredPackages Count="4">
       <Item1>
         <PackageName Value="LazUtils"/>
       </Item1>
       <Item2>
-        <PackageName Value="richmemopackage"/>
+        <PackageName Value="LCL"/>
       </Item2>
       <Item3>
         <PackageName Value="SynEdit"/>
@@ -39,11 +41,8 @@
       <Item4>
         <PackageName Value="FCL"/>
       </Item4>
-      <Item5>
-        <PackageName Value="LCL"/>
-      </Item5>
     </RequiredPackages>
-    <Units Count="4">
+    <Units Count="5">
       <Unit0>
         <Filename Value="SDMultiCopier.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -66,6 +65,11 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="detectRemovDisk"/>
       </Unit3>
+      <Unit4>
+        <Filename Value="semaphore.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="Semaphore"/>
+      </Unit4>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

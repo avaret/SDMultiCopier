@@ -6,7 +6,7 @@ unit MainForm;
 Le sam. 2 oct. 2021 à 13:27, Antoine Varet <avaret@gmail.com> a écrit :
 
       ** Idée d'amélioration du SD multi copieur **
-    chercher à comprendre pourquoi on ne peut pas avoir plus de 16 clés simultanément
+    (peut-être déjà fixé) chercher à comprendre pourquoi on ne peut pas avoir plus de 16 clés simultanément
 
 
     FAIT :
@@ -19,14 +19,21 @@ Le sam. 2 oct. 2021 à 13:27, Antoine Varet <avaret@gmail.com> a écrit :
      §§bouton abord général mieux placé
      §§Case shutdown qd copie terminée +10 min
 
+
+25/01/2023 11:37
+     §§ au début, umount /dev/sdX* (pour toutes les partitions) (ou umount /media/$USER/* ?)
+     §§ si /sys/dev/block/8:XXX/size contient "0", alors décocher la case !!!                               getDiskSize
+     §§ /sys/dev/block/8:.../ro -> contient 1 = ReadOnly => à décocher                                      isDiskReadOnly
+     * Lors d'un "abort", si le thread est en train d'écrire, débloquer le BlockWrite (timeout infini)
+
     *)
 
 interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls,
-  ExtCtrls, CheckLst, Buttons, SynEdit, Process, RichMemo,
-  SynchrosThreadsRW, detectRemovDisk;
+  ExtCtrls, CheckLst, Buttons, SynEdit, Process,
+  SynchrosThreadsRW, detectRemovDisk, SynHighlighterTeX;
 
 
 const
@@ -102,7 +109,7 @@ type
     Splitter1: TSplitter;
     TabSheetconf: TTabSheet;
     TabSheetCopying: TTabSheet;
-    AppLog: TRichMemo;
+    AppLog: TMemo;
     TimerSauverNotesPerso: TTimer;
     TimerProgression: TTimer;
     TimerPoweroff: TTimer;
@@ -383,7 +390,7 @@ Begin
 end;
 
 procedure TFormSDMultiCopier.FormCreate(Sender: TObject);
-var Year, Month, Day, i : word;
+var Year, Month, Day : word;
 begin
   CheckBoxDbgCopy.Visible:= CheckBoxDbgCopy.Checked;
   if (not IsRoot) and (not CheckBoxDbgCopy.Checked) then
@@ -409,7 +416,7 @@ begin
   ProcessDmesg_w.Active := True; // Lancer en arrière-plan une console avec dmesg -w
 
   // Tests scrollbar dans l'onglet CopieEnCours
-  If false and CheckBoxDbgCopy.Visible Then
+  {If false and CheckBoxDbgCopy.Visible Then
   begin
     //ProcessDmesg_w.Active:=False;
     TabSheetCopying.TabVisible:= true;
@@ -423,7 +430,7 @@ begin
           nil
         );
     PanelAvanceurs.UpdateScrollbars;
-  end;
+  end;}
 
 end;
 
@@ -537,11 +544,11 @@ begin
 
     ProcessUmount.Parameters.Clear;
     if Modeappli <> maImg2Disk then // Source = un disque à démonter
-      ProcessUmount.Parameters.Add(Source);
+      ProcessUmount.Parameters.Add(Source + '*');
     if Modeappli <> maDisk2Img then // Cible = des disques à démonter
       for idx := 0 to DiskTargets.Items.Count - 1 do
         if DiskTargets.Checked[idx] Then
-          ProcessUmount.Parameters.Add( DiskTargets.Items[idx] );
+          ProcessUmount.Parameters.Add( DiskTargets.Items[idx] + '*');
     StartThenWaitforProcessTermination(ProcessUmount);
 
     // Démarrage de la copie
@@ -755,7 +762,7 @@ begin
       if DiskTargets.Items.IndexOf(listDisks[i]) < 0 then
       begin
         DiskTargets.Items.Add(listDisks[i]);;
-        DiskTargets.Checked[DiskTargets.Items.Count-1] := true;
+        DiskTargets.Checked[DiskTargets.Items.Count-1] := (getDiskSize(listDisks[i]) > 0) and isDiskReadOnly(listDisks[i]);
       end;
     end;
 
@@ -771,23 +778,13 @@ end;
 
 
 procedure TFormSDMultiCopier.AddAppLog(Msg : String);
-var //A : Integer;
-  Sab, Sbc, Srtf : String;
+var
+  Sab, Sbc : String;
 Begin
   // Ajouter le texte
-  //A := AppLog.GetTextLen;
   Sab := '[' + TimeToStr(Time) + '] ';
-  //B := A + Sab.Length;
   Sbc := Msg;
   AppLog.Append(Sab + Sbc);
-
-  //Srtf := Format('{\bold [%s]} %s', [TimeToStr(Time), Msg]);
-  //Srtf := Format('\b1[%s]\b0   %s\par', [TimeToStr(Time), Msg]);
-  //AppLog.Rtf:= AppLog.Rtf+Srtf; // - on perd les accents...
-
-  // Colorer
-  //AppLog.SetRangeColor(A, Sab.Length, clBlue);  //TODO à débuguer... ou passer sur du html !
-  //AppLog.SetRangeColor(B, Msg.Length, clBlack);
 
   // Mettre le curseur à la fin
   AppLog.SelStart := AppLog.GetTextLen;
